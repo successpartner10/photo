@@ -12,6 +12,9 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
   const [zoomPct, setZoomPct] = useState(100);
   const [loading, setLoading] = useState(true);
 
+  // Store the import function in a stable ref so useImperativeHandle can always reach it
+  const importFnRef = useRef<((f: File) => void) | null>(null);
+
   function uid(p: string) { return `${p}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`; }
 
   const fitImageToCanvas = useCallback((imgW:number, imgH:number) => {
@@ -37,7 +40,8 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
       });
       fcRef.current = c;
       fabricRef.current = c;
-      if (typeof ref === 'function') ref(c); else if (ref) (ref as any).current = c;
+      if (typeof ref === 'function') ref(c);
+      else if (ref) (ref as any).current = c;
       setLoading(false);
 
       c.on('selection:created', saveSnapshot);
@@ -86,7 +90,7 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
         c.renderAll();
       }
       function handleMU(_:any) {
-        if (isDrawingRef.current) { const n = isDrawingRef.current==='rect'?'Rect':isDrawingRef.current==='ellipse'?'Ellipse':'Line'; addLayer({name:`${n}`,type:'vector',visible:true,locked:false,opacity:1,blendMode:'normal',isGroup:false}); saveSnapshot(); isDrawingRef.current=null; dispatch({type:'SET_TOOL',payload:'select'}); }
+        if (isDrawingRef.current) { const n = isDrawingRef.current==='rect'?'Rect':isDrawingRef.current==='ellipse'?'Ellipse':'Line'; addLayer({name:n,type:'vector',visible:true,locked:false,opacity:1,blendMode:'normal',isGroup:false}); saveSnapshot(); isDrawingRef.current=null; dispatch({type:'SET_TOOL',payload:'select'}); }
       }
       function handleDel() { c.getActiveObjects().forEach((o:any)=>c.remove(o)); c.discardActiveObject();c.renderAll();saveSnapshot(); }
 
@@ -119,13 +123,13 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
       /* DnD */
       const el = canvasEl.current!;
       const dgo = (e:DragEvent)=>{e.preventDefault();e.dataTransfer!.dropEffect='copy'};
-      const dg = (e:DragEvent)=>{e.preventDefault();const f=e.dataTransfer?.files?.[0];if(f)handleFileImport(f,c)};
+      const dg = (e:DragEvent)=>{e.preventDefault();const f=e.dataTransfer?.files?.[0];if(f)handleFileImport(f)};
       el.addEventListener('dragover',dgo);el.addEventListener('drop',dg);
       (c as any).__dnd = ()=>{el.removeEventListener('dragover',dgo);el.removeEventListener('drop',dg)};
 
       /* ── IMPORT ── */
-      async function handleFileImport(file:File, cc?:any) {
-        const canvas2 = cc || c; if(!canvas2) return;
+      async function handleFileImport(file:File) {
+        if(!c) return;
         const reader = new FileReader();
         reader.onload = async e2 => {
           const dataUrl = e2.target?.result as string;
@@ -137,14 +141,15 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
           });
           (fImg as any).data = {layerId:uid('import'),isSourceImage:true};
           (fImg as any)._htmlImageElement = img;
-          canvas2.add(fImg); canvas2.setActiveObject(fImg); canvas2.renderAll();
+          c.add(fImg); c.setActiveObject(fImg); c.renderAll();
           addLayer({name:file.name||'Import',type:'raster',visible:true,locked:false,opacity:1,blendMode:'normal',isGroup:false});
           saveSnapshot();
         };
         reader.readAsDataURL(file);
       }
 
-      (c as any).importFile = (file: File) => handleFileImport(file, c);
+      // SET THE STABLE REF so AppLayout can always call it
+      importFnRef.current = handleFileImport;
 
       /* filters */
       (c as any).applyFilter = (ft:string) => {
@@ -172,7 +177,6 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
   /* sync size */
   useEffect(()=>{const c=fcRef.current;if(!c)return;c.setWidth(doc.canvas.width);c.setHeight(doc.canvas.height);c.backgroundColor=doc.canvas.backgroundColor;const bg=c.getObjects().find((o:any)=>o.data?.isBackground);if(bg)bg.set({width:doc.canvas.width,height:doc.canvas.height,fill:doc.canvas.backgroundColor});c.renderAll()},[doc.canvas.width,doc.canvas.height,doc.canvas.backgroundColor]);
 
-  /* ── FILTER ── */
   const applyFilter = useCallback((ft:string)=>{
     const c=fcRef.current;if(!c||!(c as any).applyFilter)return;(c as any).applyFilter(ft);
   },[fcRef]);
@@ -184,15 +188,18 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
     dispatch({type:'SET_TOOL',payload:'select'});saveSnapshot();
   }
 
-  function handleSave() { const c=fcRef.current;if(!c)return;const a=document.createElement('a');a.download=`${doc.name||'design'}.png`;a.href=c.toDataURL({format:'png',quality:1,multiplier:2});a.click(); }
-
-  useImperativeHandle(ref,()=>({finishPen,importFile:(f:File)=>fcRef.current?.importFile?.(f),handleQuickSave:handleSave,getCanvas:()=>fcRef.current}));
+  // ── EXPOSED via ref: importFile always works because it checks the ref ──
+  useImperativeHandle(ref, () => ({
+    importFile: (file: File) => { if (importFnRef.current) importFnRef.current(file); },
+    getCanvas: () => fcRef.current,
+    finishPen,
+  }), []);
 
   return (
     <div style={{flex:1,display:'flex',flexDirection:'column',background:'var(--bg-root)',position:'relative'}} ref={containerRef}>
       {loading && (
         <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg-root)',zIndex:50,flexDirection:'column',gap:12}}>
-          <div style={{fontSize:24,fontWeight:800,color:'var(--accent)',fontFamily:'var(--font-display)'}}>Inkception</div>
+          <div style={{fontSize:22,fontWeight:800,color:'var(--accent)',fontFamily:'var(--font-display)'}}>Inkception</div>
           <div style={{fontSize:11,color:'var(--text-muted)'}}>Loading canvas engine...</div>
         </div>
       )}

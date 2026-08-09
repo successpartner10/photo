@@ -67,4 +67,4 @@ input[type=checkbox]{accent-color:var(--accent)}
 .btn-outline{border-color:rgba(124,92,252,0.3);color:var(--accent);background:transparent}
 .btn-danger{border-color:var(--c-red);background:var(--c-red);color:#fff}
 
-@media(max-width:768px){:root{--toolbar-w:0px;--panel-w:100vw}body{font-size:11px}}
+@media(max-width:768px){:root{--toolbar-w:0px;--panel-w:100vw;--topbar-h:40px;--statusbar-h:22px}body{font-size:11px}}
