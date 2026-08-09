@@ -1,9 +1,10 @@
-import React, { useId } from 'react';
+import React, { useMemo } from 'react';
+
+let logoCounter = 0;
 
 export default function Logo({ size = 28, showText = true }: { size?: number; showText?: boolean }) {
-  const uid = useId().replace(/:/g, '');
+  const uid = useMemo(() => `l${++logoCounter}`, []);
   const g1 = `g1-${uid}`;
-  const g2 = `g2-${uid}`;
   const gf = `gf-${uid}`;
 
   return (

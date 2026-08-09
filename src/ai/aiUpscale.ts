@@ -1,5 +1,3 @@
-import { Image as FabricImage } from 'fabric';
-
 // ════════════════════════════════════════════════════════
 //  4× BICUBIC UPSCALE ENGINE
 //  Uses Lanczos-2 kernel with sharpening pass

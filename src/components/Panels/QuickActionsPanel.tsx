@@ -1,20 +1,28 @@
-import React, { useCallback } from 'react';
-import { filters } from 'fabric';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useEditor } from '../../store/editorStore';
+
+let _filters: any = null;
+async function getFilters() {
+  if (!_filters) { const m = await import('fabric'); _filters = m.filters; }
+  return _filters;
+}
 
 export default function QuickActionsPanel() {
   const { fabricRef, saveSnapshot } = useEditor();
+  const [f, setF] = useState<any>(null);
 
-  const apply = useCallback((fn: (o: any) => void) => {
-    const c = fabricRef.current; if (!c) return;
+  useEffect(() => { getFilters().then(setF); }, []);
+
+  const run = useCallback((fn: (o: any) => void) => {
+    const c = fabricRef.current; if (!c || !f) return;
     c.getObjects().forEach((o: any) => {
       if (o.data?.isBackground || o.data?.isCheckerboard) return;
       if (o.filters) { fn(o); o.applyFilters(); }
     });
     c.renderAll(); saveSnapshot();
-  }, [fabricRef, saveSnapshot]);
+  }, [fabricRef, saveSnapshot, f]);
 
-  const transformAll = useCallback((fn: (o: any) => void) => {
+  const tr = useCallback((fn: (o: any) => void) => {
     const c = fabricRef.current; if (!c) return;
     c.getObjects().forEach((o: any) => {
       if (o.data?.isBackground || o.data?.isCheckerboard) return;
@@ -23,64 +31,54 @@ export default function QuickActionsPanel() {
     c.renderAll(); saveSnapshot();
   }, [fabricRef, saveSnapshot]);
 
+  if (!f) return <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>Loading filters...</div>;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="panel-header"><span className="title">ADJUSTMENTS</span><span className="badge">1‑CLICK</span></div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
-
-        {/* COLOR */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 7, fontWeight: 800, letterSpacing: 1.8, color: 'var(--text-disabled)', padding: '2px 6px 8px' }}>COLOR</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-            <Btn label="Invert" onClick={() => apply(o => o.filters.push(new filters.Invert()))} />
-            <Btn label="B&W" onClick={() => apply(o => o.filters.push(new filters.Grayscale()))} />
-            <Btn label="Sepia" onClick={() => apply(o => o.filters.push(new filters.Sepia()))} />
-            <Btn label="Vintage" onClick={() => apply(o => { o.filters.push(new filters.Sepia()); o.filters.push(new filters.Brightness({ brightness: -0.05 })); o.filters.push(new filters.Contrast({ contrast: -0.1 })); })} />
-          </div>
-        </div>
-
-        {/* ADJUST */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 7, fontWeight: 800, letterSpacing: 1.8, color: 'var(--text-disabled)', padding: '2px 6px 8px' }}>ADJUST</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-            <Btn label="Brighten" onClick={() => apply(o => o.filters.push(new filters.Brightness({ brightness: 0.1 })))} />
-            <Btn label="Darken" onClick={() => apply(o => o.filters.push(new filters.Brightness({ brightness: -0.1 })))} />
-            <Btn label="Contrast +" onClick={() => apply(o => o.filters.push(new filters.Contrast({ contrast: 0.15 })))} />
-            <Btn label="Contrast −" onClick={() => apply(o => o.filters.push(new filters.Contrast({ contrast: -0.1 })))} />
-            <Btn label="Saturate" onClick={() => apply(o => o.filters.push(new filters.Saturation({ saturation: 0.2 })))} />
-            <Btn label="Desaturate" onClick={() => apply(o => o.filters.push(new filters.Saturation({ saturation: -0.5 })))} />
-            <Btn label="Reset All" onClick={() => apply(o => { o.filters = []; })} />
-          </div>
-        </div>
-
-        {/* FILTER */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 7, fontWeight: 800, letterSpacing: 1.8, color: 'var(--text-disabled)', padding: '2px 6px 8px' }}>FILTER</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-            <Btn label="Blur" onClick={() => apply(o => o.filters.push(new filters.Blur({ blur: 0.4 })))} />
-            <Btn label="Blur More" onClick={() => apply(o => o.filters.push(new filters.Blur({ blur: 0.8 })))} />
-            <Btn label="Sharpen" onClick={() => apply(o => o.filters.push(new filters.Contrast({ contrast: 0.1 })))} />
-            <Btn label="Noise" onClick={() => apply(o => o.filters.push(new filters.Noise({ noise: 20 })))} />
-            <Btn label="Pixelate" onClick={() => apply(o => o.filters.push(new filters.Pixelate({ blocksize: 6 })))} />
-          </div>
-        </div>
-
-        {/* TRANSFORM */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 7, fontWeight: 800, letterSpacing: 1.8, color: 'var(--text-disabled)', padding: '2px 6px 8px' }}>TRANSFORM</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-            <Btn label="Flip H" onClick={() => transformAll(o => o.set('flipX', !o.flipX))} />
-            <Btn label="Flip V" onClick={() => transformAll(o => o.set('flipY', !o.flipY))} />
-            <Btn label="Rotate 90°" onClick={() => transformAll(o => o.rotate((o.angle || 0) + 90))} />
-            <Btn label="Duplicate" onClick={() => {
-              const c = fabricRef.current; if (!c) return;
-              const a = c.getActiveObject(); if (!a) return;
-              a.clone().then((cl: any) => { cl.set({ left: (cl.left || 0) + 20, top: (cl.top || 0) + 20 }); c.add(cl); c.setActiveObject(cl); saveSnapshot(); });
-            }} />
-          </div>
-        </div>
-
+        <Group label="COLOR">
+          <Btn label="Invert" onClick={() => run(o => o.filters.push(new f.Invert()))} />
+          <Btn label="B&W" onClick={() => run(o => o.filters.push(new f.Grayscale()))} />
+          <Btn label="Sepia" onClick={() => run(o => o.filters.push(new f.Sepia()))} />
+          <Btn label="Vintage" onClick={() => run(o => { o.filters.push(new f.Sepia()); o.filters.push(new f.Brightness({ brightness: -0.05 })); o.filters.push(new f.Contrast({ contrast: -0.1 })); })} />
+        </Group>
+        <Group label="ADJUST">
+          <Btn label="Brighten" onClick={() => run(o => o.filters.push(new f.Brightness({ brightness: 0.1 })))} />
+          <Btn label="Darken" onClick={() => run(o => o.filters.push(new f.Brightness({ brightness: -0.1 })))} />
+          <Btn label="Contrast +" onClick={() => run(o => o.filters.push(new f.Contrast({ contrast: 0.15 })))} />
+          <Btn label="Contrast −" onClick={() => run(o => o.filters.push(new f.Contrast({ contrast: -0.1 })))} />
+          <Btn label="Saturate" onClick={() => run(o => o.filters.push(new f.Saturation({ saturation: 0.2 })))} />
+          <Btn label="Desaturate" onClick={() => run(o => o.filters.push(new f.Saturation({ saturation: -0.5 })))} />
+          <Btn label="Reset All" onClick={() => run(o => { o.filters = []; })} />
+        </Group>
+        <Group label="FILTER">
+          <Btn label="Blur" onClick={() => run(o => o.filters.push(new f.Blur({ blur: 0.4 })))} />
+          <Btn label="Blur More" onClick={() => run(o => o.filters.push(new f.Blur({ blur: 0.8 })))} />
+          <Btn label="Sharpen" onClick={() => run(o => o.filters.push(new f.Contrast({ contrast: 0.1 })))} />
+          <Btn label="Noise" onClick={() => run(o => o.filters.push(new f.Noise({ noise: 20 })))} />
+          <Btn label="Pixelate" onClick={() => run(o => o.filters.push(new f.Pixelate({ blocksize: 6 })))} />
+        </Group>
+        <Group label="TRANSFORM">
+          <Btn label="Flip H" onClick={() => tr(o => o.set('flipX', !o.flipX))} />
+          <Btn label="Flip V" onClick={() => tr(o => o.set('flipY', !o.flipY))} />
+          <Btn label="Rotate 90°" onClick={() => tr(o => o.rotate((o.angle || 0) + 90))} />
+          <Btn label="Duplicate" onClick={() => {
+            const c = fabricRef.current; if (!c) return;
+            const a = c.getActiveObject(); if (!a) return;
+            a.clone().then((cl: any) => { cl.set({ left: (cl.left || 0) + 20, top: (cl.top || 0) + 20 }); c.add(cl); c.setActiveObject(cl); saveSnapshot(); });
+          }} />
+        </Group>
       </div>
+    </div>
+  );
+}
+
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 7, fontWeight: 800, letterSpacing: 1.8, color: 'var(--text-disabled)', padding: '2px 6px 8px' }}>{label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>{children}</div>
     </div>
   );
 }

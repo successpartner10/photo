@@ -1,4 +1,4 @@
-import { Path, Group, Polyline } from 'fabric';
+// Dynamic fabric import only when needed on canvas
 
 // ════════════════════════════════════════════════════════
 //  RASTER-TO-VECTOR TRACING ENGINE
@@ -323,9 +323,8 @@ export async function rasterToCanvasVectors(
   numColors: number = 6,
 ): Promise<string> {
   const { svg } = await rasterToVector(canvas, mode, numColors);
-
-  // Load SVG back into fabric as path objects
   const before = canvas.toDataURL({ format: 'png', quality: 1 });
+  const { Path } = await import('fabric');
 
   // Parse SVG path data and create fabric Path objects
   const pathRegex = /<path\s+d="([^"]*)"\s+fill="([^"]*)"\s+stroke="([^"]*)"[^>]*\/>/g;
