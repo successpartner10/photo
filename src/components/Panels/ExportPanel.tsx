@@ -41,7 +41,7 @@ export default function ExportPanel() {
     }, 200);
   };
 
-  const handleCopyToClipboard = () => {
+  const handleCopy = () => {
     const canvas = fabricRef.current; if (!canvas) return;
     canvas.getElement().toBlob((blob: Blob | null) => {
       if (!blob) return;
@@ -50,102 +50,79 @@ export default function ExportPanel() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="panel-header">
-        <span className="panel-title">EXPORT</span>
-        <button onClick={() => setBatchMode(!batchMode)} style={{
-          fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, letterSpacing: 1.2,
-          padding: '3px 8px', borderRadius: 'var(--radius-sm)',
-          border: batchMode ? '1px solid rgba(124,92,252,0.3)' : '1px solid var(--border-default)',
-          background: batchMode ? 'var(--accent-dim)' : 'transparent',
-          color: batchMode ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
-        }}>{batchMode ? 'SINGLE' : 'BATCH'}</button>
-      </div>
-
-      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
-        <div style={{ padding: 8, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 600, color: 'var(--text-muted)' }}>
-          CANVAS: {doc.canvas.width} × {doc.canvas.height}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--ps-panel)' }}>
+      <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
+        <div style={{ fontSize: 10, color: 'var(--ps-text-muted)' }}>
+          Canvas: {doc.canvas.width} × {doc.canvas.height} px
         </div>
 
         {!batchMode ? (
           <>
-            <Field label="FORMAT">
-              <select value={format} onChange={e => setFormat(e.target.value as ExportFormat)} style={{ width: '100%', padding: '7px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                {EXPORT_FORMATS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--ps-text-muted)', marginBottom: 3 }}>Format</div>
+              <select value={format} onChange={e => setFormat(e.target.value as ExportFormat)}
+                style={{ width: '100%', fontSize: 10, padding: '4px 6px', background: 'var(--ps-input)', border: '1px solid #333', color: 'var(--ps-text)' }}>
+                {EXPORT_FORMATS.map(f => <option key={f.id} value={f.id}>{f.label} ({f.ext})</option>)}
               </select>
-            </Field>
+            </div>
+
             {(format === 'jpg' || format === 'webp') && (
-              <Field label={`QUALITY: ${quality}%`}>
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--ps-text-muted)', marginBottom: 3 }}>Quality: {quality}%</div>
                 <input type="range" min={10} max={100} value={quality} onChange={e => setQuality(+e.target.value)} style={{ width: '100%' }} />
-              </Field>
+              </div>
             )}
+
             {format !== 'svg' && (
-              <Field label="DPI">
-                <div style={{ display: 'flex', gap: 5 }}>
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--ps-text-muted)', marginBottom: 3 }}>Resolution</div>
+                <div style={{ display: 'flex', gap: 3 }}>
                   {[72, 150, 300].map(d => (
-                    <button key={d} onClick={() => setDpi(d)} style={{
-                      flex: 1, padding: '6px', borderRadius: 'var(--radius-sm)',
-                      border: dpi === d ? '1px solid rgba(124,92,252,0.3)' : '1px solid var(--border-default)',
-                      background: dpi === d ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                      fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700,
-                      color: dpi === d ? '#fff' : 'var(--text-muted)', cursor: 'pointer',
-                    }}>{d}</button>
+                    <button key={d} onClick={() => setDpi(d)}
+                      style={{
+                        flex: 1, padding: '5px', fontSize: 10,
+                        background: dpi === d ? 'var(--ps-accent)' : 'var(--ps-input)',
+                        border: dpi === d ? '1px solid var(--ps-accent)' : '1px solid #333',
+                        color: dpi === d ? '#fff' : 'var(--ps-text-dim)', cursor: 'pointer',
+                      }}>{d} DPI</button>
                   ))}
                 </div>
-              </Field>
+              </div>
             )}
-            <button onClick={handleExport} disabled={exporting} style={{
-              width: '100%', padding: '11px', borderRadius: 'var(--radius-sm)',
-              border: 'none', background: exporting ? 'var(--bg-overlay)' : 'var(--accent)',
-              color: '#fff', cursor: exporting ? 'default' : 'pointer',
-              fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
-            }}>{exporting ? 'EXPORTING...' : `EXPORT ${format.toUpperCase()}`}</button>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button onClick={handleCopyToClipboard} style={quickBtn}>COPY</button>
-              <button onClick={() => { setFormat('png'); handleExport(); }} style={quickBtn}>QUICK PNG</button>
-              <button onClick={() => { setFormat('jpg'); handleExport(); }} style={quickBtn}>QUICK JPG</button>
+
+            <button onClick={handleExport} disabled={exporting} className="ps-btn ps-btn-accent" style={{ width: '100%', padding: '8px' }}>
+              {exporting ? 'Exporting...' : `Export as ${format.toUpperCase()}`}
+            </button>
+
+            <div style={{ display: 'flex', gap: 3 }}>
+              <button onClick={handleCopy} className="ps-btn" style={{ flex: 1, fontSize: 10 }}>Copy</button>
+              <button onClick={() => { setFormat('png'); handleExport(); }} className="ps-btn" style={{ flex: 1, fontSize: 10 }}>Quick PNG</button>
+              <button onClick={() => setBatchMode(true)} className="ps-btn" style={{ flex: 1, fontSize: 10 }}>Batch</button>
             </div>
           </>
         ) : (
           <>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: 0.5 }}>
-              BATCH EXPORT — SELECT SIZES:
-            </div>
+            <div style={{ fontSize: 10, color: 'var(--ps-text-dim)' }}>Select platform sizes to batch export:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
               {PLATFORM_PRESETS.filter(p => p.id !== 'custom').map(p => (
-                <button key={p.id} onClick={() => setSelectedPlatforms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                <button key={p.id}
+                  onClick={() => setSelectedPlatforms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
                   style={{
-                    padding: '5px 8px', borderRadius: 'var(--radius-sm)', fontSize: 8, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 0.8,
-                    border: selectedPlatforms.includes(p.id) ? '1px solid rgba(124,92,252,0.3)' : '1px solid var(--border-default)',
-                    background: selectedPlatforms.includes(p.id) ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                    color: selectedPlatforms.includes(p.id) ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
-                  }}>{p.platform} {p.width}×{p.height}</button>
+                    padding: '4px 8px', fontSize: 9,
+                    background: selectedPlatforms.includes(p.id) ? 'var(--ps-accent)' : 'var(--ps-input)',
+                    border: selectedPlatforms.includes(p.id) ? '1px solid var(--ps-accent)' : '1px solid #333',
+                    color: selectedPlatforms.includes(p.id) ? '#fff' : 'var(--ps-text-dim)', cursor: 'pointer',
+                  }}>{p.platform}</button>
               ))}
             </div>
-            <button onClick={handleBatchExport} disabled={selectedPlatforms.length === 0 || exporting} style={{
-              width: '100%', padding: '11px', borderRadius: 'var(--radius-sm)',
-              border: 'none', background: selectedPlatforms.length > 0 && !exporting ? 'var(--accent)' : 'var(--bg-overlay)',
-              color: selectedPlatforms.length > 0 && !exporting ? '#fff' : 'var(--text-disabled)',
-              cursor: selectedPlatforms.length > 0 && !exporting ? 'pointer' : 'default',
-              fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
-            }}>{exporting ? 'EXPORTING...' : `EXPORT ${selectedPlatforms.length} SIZES`}</button>
+            <button onClick={handleBatchExport} disabled={selectedPlatforms.length === 0 || exporting}
+              className="ps-btn ps-btn-accent" style={{ width: '100%', padding: '8px' }}>
+              {exporting ? 'Exporting...' : `Export ${selectedPlatforms.length} sizes`}
+            </button>
+            <button onClick={() => setBatchMode(false)} className="ps-btn" style={{ width: '100%', fontSize: 10 }}>Back</button>
           </>
         )}
       </div>
     </div>
   );
 }
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 800, letterSpacing: 1.2, color: 'var(--text-disabled)' }}>{label}</span>
-      {children}
-    </div>
-  );
-}
-const quickBtn: React.CSSProperties = {
-  flex: 1, padding: '6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)',
-  background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer',
-  fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, letterSpacing: 1,
-};

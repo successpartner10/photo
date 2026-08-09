@@ -1,78 +1,130 @@
-/* ===== Inkception — AI Design Studio ===== */
+/* ===== Inkception — Photoshop-style Design System ===== */
 :root {
-  --accent: #7c5cfc;
-  --accent-glow: rgba(124,92,252,0.18);
-  --bg-root: #060606;
-  --bg-surface: #0b0b0b;
-  --bg-elevated: #131313;
-  --bg-overlay: #1a1a1a;
-  --bg-input: #0e0e0e;
-  --border-subtle: #171717;
-  --border-default: #222222;
-  --border-strong: #2d2d2d;
-  --text-primary: #eee;
-  --text-secondary: #888;
-  --text-muted: #505050;
-  --text-disabled: #2a2a2a;
-  --c-purple: #8b5cf6;
-  --c-red: #ef4444;
-  --c-teal: #14b8a6;
-  --c-amber: #f59e0b;
-  --c-blue: #3b82f6;
-  --c-green: #22c55e;
-  --c-orange: #f97316;
-  --topbar-h: 44px;
-  --statusbar-h: 26px;
-  --toolbar-w: 56px;
-  --panel-w: 290px;
-  --radius: 4px;
-  --font-display: system-ui, -apple-system, sans-serif;
-  --font-body: system-ui, -apple-system, sans-serif;
+  --ps-bg: #1e1e1e;
+  --ps-panel: #2d2d2d;
+  --ps-input: #3a3a3a;
+  --ps-hover: #3e3e3e;
+  --ps-active: #4a4a4a;
+  --ps-border: #3a3a3a;
+  --ps-text: #e0e0e0;
+  --ps-text-dim: #a0a0a0;
+  --ps-text-muted: #707070;
+  --ps-accent: #3784f0;
+  --ps-accent-hover: #4d94f7;
+  --ps-danger: #e74856;
+  --ps-success: #16ab5b;
+
+  --topbar-h: 36px;
+  --statusbar-h: 24px;
+  --toolbar-w: 52px;
+  --panel-w: 280px;
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body,#root{height:100dvh;width:100%;overflow:hidden}
-body{
-  font-family:var(--font-body);font-size:12px;font-weight:500;
-  line-height:1.5;letter-spacing:.015em;
-  color:var(--text-primary);background:var(--bg-root);
-  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  -webkit-tap-highlight-color:transparent;
-  overscroll-behavior:none;
-  touch-action:manipulation;
+html,body,#root{height:100%;width:100%;overflow:hidden}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 12px; font-weight: 400; line-height: 1.4;
+  color: var(--ps-text); background: var(--ps-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0;
 }
-button, select, input { -webkit-tap-highlight-color: transparent; }
-::-webkit-scrollbar{width:3px;height:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px}
-::selection{background:var(--accent-glow);color:#fff}
-:focus-visible{outline:1.5px solid var(--accent);outline-offset:1px}
+
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--ps-bg)}
+::-webkit-scrollbar-thumb{background:var(--ps-input);border-radius:0}
+::-webkit-scrollbar-thumb:hover{background:var(--ps-active)}
+::-webkit-scrollbar-corner{background:var(--ps-bg)}
+::selection{background:var(--ps-accent);color:#fff}
+*:focus-visible{outline:1px solid var(--ps-accent);outline-offset:-1px}
 
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-button{font-family:var(--font-display);cursor:pointer;border:none;background:none;color:inherit;font-size:inherit;font-weight:600;letter-spacing:.03em;border-radius:var(--radius);transition:all .1s}
-button:disabled{opacity:.25;cursor:not-allowed}
+button {
+  font-family: inherit; cursor: pointer; border: none; background: none;
+  color: inherit; font-size: inherit; font-weight: 400; border-radius: 0;
+}
 
-input,select,textarea{font-family:var(--font-body);font-size:11px;font-weight:500;color:var(--text-primary);background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius);padding:7px 10px;outline:none;transition:border-color .15s}
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
-input[type=range]{accent-color:var(--accent);height:3px;padding:0;border:none}
-input[type=checkbox]{accent-color:var(--accent)}
+input, select, textarea {
+  font-family: inherit; font-size: 11px; color: var(--ps-text);
+  background: var(--ps-input); border: 1px solid var(--ps-border);
+  border-radius: 0; padding: 3px 6px; outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--ps-accent); }
 
-.panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);user-select:none}
-.panel-header span.title{font-family:var(--font-display);font-size:8px;font-weight:800;letter-spacing:2px;color:var(--text-muted)}
-.panel-header span.badge{font-family:var(--font-display);font-size:8px;font-weight:700;color:var(--text-disabled)}
+select {
+  cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 6px center;
+  padding-right: 18px;
+}
+input[type=range] { accent-color: var(--ps-accent); height: 3px; padding: 0; border: none; }
+input[type=checkbox] { accent-color: var(--ps-accent); }
 
-.btn{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:1px;padding:8px 14px;border-radius:var(--radius);cursor:pointer;border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-secondary);transition:all .1s}
-.btn:hover{color:#fff;border-color:var(--border-strong)}
-.btn-primary{border-color:var(--accent);background:var(--accent);color:#fff}
-.btn-outline{border-color:rgba(124,92,252,0.3);color:var(--accent);background:transparent}
-.btn-danger{border-color:var(--c-red);background:var(--c-red);color:#fff}
+/* Photoshop panel header */
+.ps-panel-header {
+  display: flex; align-items: center; height: 28px;
+  padding: 0 8px; background: var(--ps-panel);
+  border-bottom: 1px solid #222;
+  font-size: 11px; font-weight: 600; color: var(--ps-text-dim);
+  user-select: none;
+}
+
+/* Photoshop tab bar */
+.ps-tabs {
+  display: flex; background: var(--ps-panel); border-bottom: 1px solid #222;
+  height: 28px; align-items: flex-end;
+}
+.ps-tab {
+  padding: 5px 10px; font-size: 10px; color: var(--ps-text-muted);
+  border-right: 1px solid #222; cursor: pointer; background: #252525;
+  border-bottom: 1px solid #222; margin-bottom: -1px;
+  white-space: nowrap;
+}
+.ps-tab-active {
+  color: var(--ps-text); background: var(--ps-panel);
+  border-bottom: 1px solid var(--ps-panel);
+}
+
+/* Photoshop menu bar */
+.ps-menubar {
+  display: flex; align-items: center; height: var(--topbar-h);
+  background: var(--ps-panel); border-bottom: 1px solid #222;
+  padding: 0 6px; gap: 0; flex-shrink: 0;
+}
+.ps-menubar button, .ps-menubar span.menu {
+  padding: 4px 8px; font-size: 11px; color: var(--ps-text-dim);
+  border-radius: 0; cursor: pointer;
+}
+.ps-menubar button:hover, .ps-menubar span.menu:hover { background: var(--ps-hover); color: var(--ps-text); }
+.ps-menubar .separator { width: 1px; height: 20px; background: #222; margin: 0 4px; }
+
+/* Photoshop status bar */
+.ps-statusbar {
+  display: flex; align-items: center; height: var(--statusbar-h);
+  background: var(--ps-panel); border-top: 1px solid #222;
+  padding: 0 8px; font-size: 10px; color: var(--ps-text-muted);
+  flex-shrink: 0;
+}
+
+/* Photoshop-style buttons */
+.ps-btn {
+  padding: 4px 12px; font-size: 11px; border: 1px solid #555;
+  background: var(--ps-input); color: var(--ps-text);
+  cursor: pointer; border-radius: 0;
+}
+.ps-btn:hover { background: var(--ps-hover); border-color: #666; }
+.ps-btn:active { background: var(--ps-active); }
+.ps-btn-accent { background: var(--ps-accent); border-color: var(--ps-accent); color: #fff; }
+.ps-btn-accent:hover { background: var(--ps-accent-hover); }
+
+/* Section divider */
+.ps-divider { height: 1px; background: #222; }
 
 @media(max-width:1023px){
-  :root{--toolbar-w:0px;--panel-w:100vw;--topbar-h:48px;--statusbar-h:0px}
+  :root{--toolbar-w:0px;--panel-w:100vw;--topbar-h:40px;--statusbar-h:0px}
   body{font-size:11px}
-  button{min-height:36px}
 }
