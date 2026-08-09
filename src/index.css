@@ -1,103 +1,84 @@
-/* ═══ Inkception — Bold Mega-Design ═══ */
+/* ═══ Inkception — Card-Based Creative Studio ═══ */
 :root {
-  --bg: #0f0f0f;
-  --surface: #181818;
-  --elevated: #222;
-  --overlay: #2a2a2a;
-  --input: #1c1c1c;
-  --border: #2e2e2e;
+  --bg: #0a0a0a;
+  --bg2: #111;
+  --card: #1a1a1a;
+  --card-hover: #242424;
+  --chip: #1e1e1e;
+  --border: #2a2a2a;
   --text: #f0f0f0;
   --text2: #aaa;
-  --text3: #666;
-  --accent: #5b9cf5;
-  --accent2: #f5617a;
-  --green: #4cda6a;
-  --amber: #f5a623;
-  --red: #f55050;
-  --nav-h: 52px;
-  --status-h: 28px;
-  --toolbar-w: 60px;
-  --panel-w: 300px;
-  --radius: 6px;
-  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --text3: #555;
+  --accent: #6c5ce7;
+  --pink: #e84393;
+  --teal: #00cec9;
+  --amber: #fdcb6e;
+  --blue: #74b9ff;
+  --green: #00b894;
+  --red: #ff7675;
+  --nav-h: 48px;
+  --bottom-h: 72px;
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
 }
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;width:100%;overflow:hidden;background:var(--bg)}
-
-body {
-  font-family: var(--font); font-size: 13px; font-weight: 500;
-  color: var(--text); background: var(--bg);
-  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
-  overscroll-behavior: none; touch-action: manipulation;
+body{
+  font-family:var(--font);font-size:14px;font-weight:500;
+  color:var(--text);background:var(--bg);
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;touch-action:manipulation;
 }
-
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar{display:none}
 ::selection{background:var(--accent);color:#fff}
-
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideRight{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
-
-button {
-  font-family: var(--font); cursor: pointer; border: none; background: none;
-  color: inherit; font-size: inherit; font-weight: 500; border-radius: var(--radius);
-  transition: background .1s, color .1s;
-  -webkit-tap-highlight-color: transparent;
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideRight{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+button{
+  font-family:var(--font);cursor:pointer;border:none;background:none;
+  color:inherit;font-size:inherit;font-weight:500;-webkit-tap-highlight-color:transparent;
+  transition:transform .1s,opacity .1s;
 }
-button:hover{background:var(--elevated)}
-button:active{background:var(--overlay)}
-button:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
-
-input,select,textarea {
-  font-family: var(--font); font-size: 13px; font-weight: 500;
-  color: var(--text); background: var(--input);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 8px 10px; outline: none; transition: border-color .15s;
+button:active{transform:scale(.97)}
+button:disabled{opacity:.3;pointer-events:none}
+input,select,textarea{
+  font-family:var(--font);font-size:14px;font-weight:500;
+  color:var(--text);background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 14px;outline:none;
 }
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-
-select {
-  cursor: pointer; appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
-}
+input:focus{border-color:var(--accent)}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 input[type=range]{accent-color:var(--accent);height:4px;padding:0;border:none}
-input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px}
+input[type=checkbox]{accent-color:var(--accent);width:20px;height:20px}
 
-/* ── Shared Shell ── */
-.panel{background:var(--surface);display:flex;flex-direction:column;height:100%}
-.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;user-select:none}
-.divider{height:1px;background:var(--border)}
-.spacer{height:8px}
+/* ── Cards ── */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:14px;transition:all .15s;
+}
+.card:active{background:var(--card-hover);transform:scale(.98)}
 
-/* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;font-size:13px;font-weight:600;border-radius:var(--radius);cursor:pointer;border:1px solid var(--border);background:var(--elevated);color:var(--text2);gap:6px;transition:all .12s}
-.btn:hover{background:var(--overlay);color:var(--text)}
-.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn-primary:hover{background:#6aadff}
-.btn-danger{background:var(--red);border-color:var(--red);color:#fff}
-.btn-success{background:var(--green);border-color:var(--green);color:#000;font-weight:700}
-.btn-ghost{border-color:transparent;background:transparent}
-.btn-lg{padding:14px 24px;font-size:15px}
-.btn-sm{padding:6px 12px;font-size:11px}
-.btn-block{width:100%}
+/* ── Chips ── */
+.chip{
+  display:inline-flex;align-items:center;padding:8px 16px;font-size:12px;
+  font-weight:600;border-radius:20px;border:1px solid var(--border);
+  background:var(--chip);color:var(--text2);gap:6px;white-space:nowrap;
+}
+.chip-active{background:var(--accent);border-color:var(--accent);color:#fff}
 
-/* ── Tags / Chips ── */
-.tag{display:inline-flex;align-items:center;padding:4px 10px;font-size:10px;font-weight:700;border-radius:20px;gap:4px;letter-spacing:.4px}
-.tag-accent{background:rgba(91,156,245,.15);color:var(--accent)}
-.tag-success{background:rgba(76,218,106,.15);color:var(--green)}
-.tag-warn{background:rgba(245,162,35,.15);color:var(--amber)}
+/* ── Bottom Sheet ── */
+.sheet{
+  background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;
+  animation:slideUp .25s ease-out;
+}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:8px auto}
 
 /* ── Responsive ── */
-@media(max-width:1023px){
-  :root{--toolbar-w:0px;--panel-w:100vw;--nav-h:48px}
-  body{font-size:14px}
-  .hide-mobile{display:none!important}
-}
 @media(min-width:1024px){
-  .hide-desktop{display:none!important}
+  .mobile-only{display:none!important}
+}
+@media(max-width:1023px){
+  .desktop-only{display:none!important}
 }
