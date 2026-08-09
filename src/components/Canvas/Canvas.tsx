@@ -287,11 +287,13 @@ const Canvas = forwardRef<any, {}>((_props, ref) => {
         left: Math.max(0, (doc.canvas.width - Math.min(img.width, doc.canvas.width * 0.8)) / 2),
         top: Math.max(0, (doc.canvas.height - Math.min(img.height, doc.canvas.height * 0.8)) / 2),
       });
-      (fImg as any).data = { layerId: makeId('import') };
+      (fImg as any).data = { layerId: makeId('import'), isSourceImage: true };
 
       if (img.width > doc.canvas.width * 0.8 || img.height > doc.canvas.height * 0.8) {
         fImg.scaleToWidth(doc.canvas.width * 0.8);
       }
+      // store raw HTML element for pixel analysis
+      (fImg as any)._htmlImageElement = img;
       canvas.add(fImg);
       canvas.setActiveObject(fImg);
       canvas.renderAll();

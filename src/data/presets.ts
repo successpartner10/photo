@@ -53,8 +53,9 @@ export const AI_FEATURES = [
   { id: 'generative-fill' as const, icon: '🧩', label: 'Generative Fill', desc: 'Text-prompt or context-aware fill' },
   { id: 'generative-expand' as const, icon: '⬍', label: 'Generative Expand', desc: 'Extend canvas edges with AI' },
   { id: 'style-filter' as const, icon: '🎨', label: 'Style Filters', desc: 'B&W, cool/warm tones, vintage, LUTs' },
-  { id: 'upscale' as const, icon: '🔍', label: 'Upscale / Restore', desc: 'AI upscaling & denoising' },
-  { id: 'layer-segment' as const, icon: '🧱', label: 'Auto Layer Segmentation', desc: 'Detect & separate into layers' },
+  { id: 'upscale-4x' as const, icon: '🔍', label: 'Upscale 4× (Lanczos)', desc: 'Bicubic upscale + sharpen + denoise' },
+  { id: 'vectorize' as const, icon: '🔷', label: 'Raster → SVG Vector', desc: 'Edge trace + color quantization' },
+  { id: 'layer-segment' as const, icon: '🧱', label: 'Auto Layer Segmentation', desc: 'Pixel analysis → text·subject·bg·panels' },
   { id: 'smart-text' as const, icon: '💬', label: 'Smart Text', desc: 'AI headline, caption & font suggestions' },
   { id: 'animate' as const, icon: '▶', label: 'Animate', desc: 'Generate motion from static image' },
 ];

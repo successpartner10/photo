@@ -116,7 +116,8 @@ export type ExportFormat = 'png' | 'jpg' | 'webp' | 'svg' | 'pdf' | 'gif' | 'tif
 export type AIAction =
   | 'auto-enhance' | 'background-remove' | 'generative-fill'
   | 'generative-expand' | 'style-filter' | 'animate'
-  | 'layer-segment' | 'upscale' | 'smart-text';
+  | 'layer-segment' | 'upscale' | 'upscale-4x' | 'vectorize'
+  | 'smart-text';
 
 export type AIFilterStyle = 'bw' | 'cool' | 'warm' | 'vintage' | 'dramatic' | 'soft';
 

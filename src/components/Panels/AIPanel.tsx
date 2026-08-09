@@ -5,9 +5,11 @@ import BeforeAfterSlider from '../Widgets/BeforeAfterSlider';
 import { useEditor } from '../../store/editorStore';
 import {
   applyAutoEnhance, applyBackgroundRemoval, applyGenerativeFill,
-  applyGenerativeExpand, applyStyleFilter, applyUpscale,
-  applyLayerSegmentation, applySmartText, applyAnimate,
+  applyGenerativeExpand, applyStyleFilter, applyLayerSegmentation,
+  applySmartText, applyAnimate,
 } from '../../ai/aiEffects';
+import { applyUpscale4x } from '../../ai/aiUpscale';
+import { rasterToCanvasVectors } from '../../ai/aiVectorize';
 
 export default function AIPanel() {
   const { fabricRef, addLayer, saveSnapshot } = useEditor();
@@ -15,6 +17,8 @@ export default function AIPanel() {
   const [prompt, setPrompt] = useState('');
   const [showCompare, setShowCompare] = useState<AIOperation | null>(null);
   const [runningAction, setRunningAction] = useState<AIAction | null>(null);
+  const [vectorMode, setVectorMode] = useState<'outline' | 'color-layers' | 'both'>('both');
+  const [vectorColors, setVectorColors] = useState(6);
 
   const runAI = useCallback(async (action: AIAction, label: string, extra?: { prompt?: string; style?: AIFilterStyle }) => {
     const canvas = fabricRef.current;
@@ -40,14 +44,18 @@ export default function AIPanel() {
           before = await applyGenerativeExpand(canvas, 'horizontal'); break;
         case 'style-filter':
           before = await applyStyleFilter(canvas, extra?.style || 'cool'); break;
-        case 'upscale':
-          before = await applyUpscale(canvas); break;
         case 'layer-segment':
           before = await applyLayerSegmentation(canvas, addLayer); break;
         case 'smart-text':
           before = await applySmartText(canvas, addLayer); break;
         case 'animate':
           before = await applyAnimate(canvas); break;
+        case 'upscale-4x':
+          before = await applyUpscale4x(canvas, addLayer); break;
+        case 'vectorize':
+          before = await rasterToCanvasVectors(canvas, addLayer, vectorMode, vectorColors); break;
+        default:
+          break;
       }
       saveSnapshot();
 
@@ -55,83 +63,63 @@ export default function AIPanel() {
       setRuns(prev => prev.map(r =>
         r.id === op.id ? { ...r, status: 'done' as const, beforeSnapshot: before, afterSnapshot: after } : r
       ));
-    } catch {
+    } catch (e) {
+      console.error(e);
       setRuns(prev => prev.map(r => r.id === op.id ? { ...r, status: 'error' as const } : r));
     }
     setRunningAction(null);
-  }, [fabricRef, addLayer, saveSnapshot]);
+  }, [fabricRef, addLayer, saveSnapshot, vectorMode, vectorColors]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <div style={{
-        padding: '10px 12px', borderBottom: '1px solid #333',
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#7C5CFC', textTransform: 'uppercase', letterSpacing: 1 }}>
-          ✦ AI Tools
-        </span>
-        <span style={{ fontSize: 10, color: '#555', marginLeft: 'auto' }}>Non-destructive</span>
+      <div className="panel-header">
+        <h3>✦ AI Tools</h3>
+        <span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>Non-destructive</span>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-        {/* AI Feature buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {AI_FEATURES.map(feat => {
-            const isRunning = runningAction === feat.id;
-            const hasResult = runs.some(r => r.action === feat.id && r.status === 'done');
+        {AI_FEATURES.map(feat => {
+          const isRunning = runningAction === feat.id;
+          const hasResult = runs.some(r => r.action === feat.id && r.status === 'done');
 
-            return (
-              <button key={feat.id}
-                onClick={() => {
-                  if (feat.id === 'style-filter') {
-                    // Show style submenu
-                    setPrompt('style-picker');
-                  } else if (feat.id === 'generative-fill') {
-                    // Focus prompt
-                    setPrompt('');
-                  } else {
-                    runAI(feat.id, feat.label);
-                  }
-                }}
-                disabled={!!runningAction}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 10px', borderRadius: 8,
-                  border: isRunning ? '1px solid #7C5CFC' : '1px solid #333',
-                  background: isRunning ? '#7C5CFC15' : '#1a1a1a',
-                  cursor: runningAction ? 'wait' : 'pointer',
-                  textAlign: 'left', transition: 'all 0.15s',
-                  opacity: runningAction ? 0.7 : 1, width: '100%',
-                }}
-              >
-                <span style={{ fontSize: 22 }}>{feat.icon}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#ddd' }}>{feat.label}</div>
-                  <div style={{ fontSize: 10, color: '#777', marginTop: 1 }}>{feat.desc}</div>
-                </div>
-                {isRunning && <span style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>⏳</span>}
-                {hasResult && !isRunning && <span style={{ fontSize: 12, color: '#4CAF50' }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
+          return (
+            <button key={feat.id}
+              onClick={() => {
+                if (feat.id === 'style-filter') { setPrompt('style-picker'); }
+                else if (feat.id === 'generative-fill') { setPrompt(''); }
+                else if (feat.id === 'vectorize') { setPrompt('vectorize-options'); }
+                else { runAI(feat.id, feat.label); }
+              }}
+              disabled={!!runningAction}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 10px', borderRadius: 'var(--radius-sm)',
+                border: isRunning ? '1px solid var(--border-accent)' : '1px solid var(--border-default)',
+                background: isRunning ? 'var(--accent-glow)' : 'var(--bg-elevated)',
+                cursor: runningAction ? 'wait' : 'pointer',
+                textAlign: 'left', transition: 'all 0.15s',
+                opacity: runningAction ? 0.7 : 1, width: '100%',
+                marginBottom: 4,
+              }}>
+              <span style={{ fontSize: 20 }}>{feat.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>{feat.label}</div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>{feat.desc}</div>
+              </div>
+              {isRunning && <span style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}>⏳</span>}
+              {hasResult && !isRunning && <span style={{ fontSize: 11, color: 'var(--success)' }}>✓</span>}
+            </button>
+          );
+        })}
 
-        {/* Style filter picker */}
+        {/* Style picker */}
         {prompt === 'style-picker' && (
-          <div style={{
-            marginTop: 8, padding: 10, background: '#1a1a1a',
-            borderRadius: 8, border: '1px solid #333',
-          }}>
-            <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>Choose a style filter:</div>
+          <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>Style:</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
               {(['bw', 'cool', 'warm', 'vintage', 'dramatic', 'soft'] as AIFilterStyle[]).map(s => (
                 <button key={s} onClick={() => { runAI('style-filter', `Style: ${s}`, { style: s }); setPrompt(''); }}
-                  style={{
-                    padding: '8px', borderRadius: 6, border: '1px solid #444',
-                    background: '#222', color: '#ccc', cursor: 'pointer', fontSize: 11,
-                    textTransform: 'capitalize',
-                  }}>
+                  style={{ padding: '7px 6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', background: 'var(--bg-overlay)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 10, textTransform: 'capitalize' }}>
                   {s === 'bw' ? 'B&W' : s === 'cool' ? '❄ Cool' : s === 'warm' ? '🔥 Warm' : s === 'vintage' ? '📷 Vintage' : s === 'dramatic' ? '🎭 Dramatic' : '🌸 Soft'}
                 </button>
               ))}
@@ -139,62 +127,91 @@ export default function AIPanel() {
           </div>
         )}
 
-        {/* Generative Fill prompt */}
-        <div style={{
-          marginTop: 10, padding: '10px', background: '#1a1a1a',
-          borderRadius: 8, border: '1px solid #333',
-        }}>
-          <div style={{ fontSize: 11, color: '#888', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Generative Fill Prompt
-          </div>
-          <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
-            placeholder='Describe what to generate... "sunset sky", "forest background"'
-            style={{
-              width: '100%', height: 50, padding: '6px 10px', borderRadius: 6,
-              border: '1px solid #333', background: '#111', color: '#ccc',
-              fontSize: 12, resize: 'vertical', outline: 'none',
-              boxSizing: 'border-box', fontFamily: 'inherit',
-            }}
-          />
-          <button onClick={() => { if (prompt.trim()) runAI('generative-fill', `Fill: "${prompt.slice(0, 30)}"`, { prompt }); }}
-            disabled={!prompt.trim() || !!runningAction}
-            style={{
-              marginTop: 6, width: '100%', padding: '8px', borderRadius: 6,
-              border: 'none', background: prompt.trim() && !runningAction ? '#7C5CFC' : '#333',
-              color: prompt.trim() && !runningAction ? '#fff' : '#666',
-              cursor: prompt.trim() && !runningAction ? 'pointer' : 'default',
-              fontSize: 12, fontWeight: 600,
-            }}>
-            {runningAction ? 'Processing...' : 'Generate'}
-          </button>
-        </div>
-
-        {/* Operation history with compare buttons */}
-        {runs.length > 0 && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-              Recent Operations
+        {/* Vectorize options */}
+        {prompt === 'vectorize-options' && (
+          <div style={{ marginTop: 6, padding: 10, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>Vectorize Mode:</div>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+              {(['outline', 'color-layers', 'both'] as const).map(m => (
+                <button key={m} onClick={() => setVectorMode(m)} style={{
+                  flex: 1, padding: '6px 4px', borderRadius: 'var(--radius-sm)', fontSize: 10,
+                  border: vectorMode === m ? '1px solid var(--border-accent)' : '1px solid var(--border-default)',
+                  background: vectorMode === m ? 'var(--accent-glow)' : 'var(--bg-overlay)',
+                  color: vectorMode === m ? '#fff' : 'var(--text-muted)', cursor: 'pointer',
+                  textTransform: 'capitalize',
+                }}>{m.replace('-', ' ')}</button>
+              ))}
             </div>
-            {runs.slice(0, 8).map((run) => (
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>
+              Colors: {vectorColors}
+            </div>
+            <input type="range" min={2} max={16} value={vectorColors}
+              onChange={e => setVectorColors(+e.target.value)}
+              style={{ width: '100%', marginBottom: 8 }} />
+            <button onClick={() => { runAI('vectorize', 'Raster → SVG Vector'); setPrompt(''); }}
+              disabled={!!runningAction}
+              style={{
+                width: '100%', padding: '8px', borderRadius: 'var(--radius-sm)',
+                border: 'none', background: runningAction ? 'var(--bg-overlay)' : 'var(--accent)',
+                color: '#fff', cursor: runningAction ? 'wait' : 'pointer',
+                fontSize: 11, fontWeight: 600,
+              }}>
+              {runningAction ? 'Tracing...' : `Trace as ${vectorMode.replace('-',' ')} (${vectorColors} colors) → SVG`}
+            </button>
+          </div>
+        )}
+
+        {/* Generative Fill prompt */}
+        {prompt !== 'style-picker' && prompt !== 'vectorize-options' && (
+          <div style={{ marginTop: 8, padding: 10, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Prompt
+            </div>
+            <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
+              placeholder='e.g. "sunset sky", "forest background"'
+              style={{
+                width: '100%', height: 44, padding: '6px 10px', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-default)', background: 'var(--bg-input)',
+                color: 'var(--text-primary)', fontSize: 11, resize: 'vertical',
+                outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+              }} />
+            <button onClick={() => { if (prompt.trim()) runAI('generative-fill', `Fill: "${prompt.slice(0, 30)}"`, { prompt }); }}
+              disabled={!prompt.trim() || !!runningAction}
+              style={{
+                marginTop: 5, width: '100%', padding: '7px', borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                background: prompt.trim() && !runningAction ? 'var(--accent)' : 'var(--bg-overlay)',
+                color: prompt.trim() && !runningAction ? '#fff' : 'var(--text-disabled)',
+                cursor: prompt.trim() && !runningAction ? 'pointer' : 'default',
+                fontSize: 11, fontWeight: 600,
+              }}>
+              {runningAction ? 'Processing...' : 'Generate'}
+            </button>
+          </div>
+        )}
+
+        {/* History */}
+        {runs.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 9, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+              History
+            </div>
+            {runs.slice(0, 6).map((run) => (
               <div key={run.id} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '5px 8px', fontSize: 11,
-                color: run.status === 'done' ? '#4CAF50' : run.status === 'error' ? '#E85D75' : '#FFA726',
-                borderBottom: '1px solid #ffffff06',
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '4px 6px', fontSize: 10,
+                color: run.status === 'done' ? 'var(--success)' : run.status === 'error' ? 'var(--danger)' : 'var(--warning)',
               }}>
                 <span>{run.status === 'done' ? '✓' : run.status === 'error' ? '✗' : '⏳'}</span>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {run.action === 'style-filter' ? `Style: ${run.styleFilter}` : run.action}
-                  {run.prompt ? `: "${run.prompt.slice(0, 20)}"` : ''}
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
+                  {run.action} {run.prompt ? `"${run.prompt.slice(0, 16)}"` : ''}
                 </span>
                 {run.status === 'done' && run.beforeSnapshot && (
                   <button onClick={() => setShowCompare(run)} style={{
-                    background: '#7C5CFC22', border: '1px solid #7C5CFC44',
-                    borderRadius: 4, color: '#7C5CFC', cursor: 'pointer',
-                    fontSize: 10, padding: '2px 6px',
-                  }}>
-                    Compare
-                  </button>
+                    background: 'var(--accent-glow)', border: '1px solid var(--border-accent)',
+                    borderRadius: 3, color: 'var(--accent)', cursor: 'pointer',
+                    fontSize: 9, padding: '1px 5px',
+                  }}>Compare</button>
                 )}
               </div>
             ))}
@@ -202,7 +219,6 @@ export default function AIPanel() {
         )}
       </div>
 
-      {/* Before/After comparison modal */}
       {showCompare && (
         <BeforeAfterSlider
           beforeImage={showCompare.beforeSnapshot}
@@ -212,11 +228,8 @@ export default function AIPanel() {
         />
       )}
 
-      <div style={{
-        padding: '8px 12px', borderTop: '1px solid #333',
-        fontSize: 10, color: '#666', textAlign: 'center',
-      }}>
-        All AI edits are non-destructive · Re-prompt anytime
+      <div style={{ padding: '6px 12px', borderTop: '1px solid var(--border-subtle)', fontSize: 9, color: 'var(--text-disabled)', textAlign: 'center' }}>
+        All edits non-destructive · Re-prompt anytime
       </div>
     </div>
   );
