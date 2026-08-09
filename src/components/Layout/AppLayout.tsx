@@ -78,7 +78,11 @@ export default function AppLayout() {
       )}
 
       {/* MAIN BODY */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        {/* Version tag */}
+        <div style={{ position: 'absolute', bottom: 4, right: 8, fontSize: 9, color: '#333', zIndex: 10, pointerEvents: 'none', userSelect: 'none' }}>
+          {typeof __INKCEPTION_VERSION__ !== 'undefined' ? __INKCEPTION_VERSION__ : ''}
+        </div>
         <Canvas ref={cr} />
         {isDesktop && <DesktopPanels />}
       </div>
