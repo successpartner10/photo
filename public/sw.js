@@ -1,12 +1,10 @@
-const CACHE = 'designeditor-v1';
-const ASSETS = [
-  '/photo/',
-  '/photo/index.html',
-  '/photo/manifest.json',
-];
+const CACHE = 'inkception-v1';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll([
+    '/photo/',
+    '/photo/index.html',
+  ])));
 });
 
 self.addEventListener('fetch', e => {
@@ -16,7 +14,7 @@ self.addEventListener('fetch', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(
-    keys.filter(k => k !== CACHE).map(k => caches.delete(k))
-  )));
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
 });

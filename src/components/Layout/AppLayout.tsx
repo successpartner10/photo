@@ -10,6 +10,7 @@ import ReviewStudio from '../Panels/ReviewStudio';
 import CollagePanel from '../Panels/CollagePanel';
 import FileMenu from '../Widgets/FileMenu';
 import MobileNav from '../Widgets/MobileNav';
+import Logo from '../Widgets/Logo';
 import { useEditor } from '../../store/editorStore';
 import { PLATFORM_PRESETS } from '../../data/presets';
 
@@ -48,9 +49,7 @@ export default function AppLayout() {
 
       {/* ══════ TOP BAR ══════ */}
       <div style={{height:'var(--topbar-h)',background:'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',display:'flex',alignItems:'center',padding:'0 10px',gap:0,flexShrink:0,zIndex:100}}>
-        <span style={{fontFamily:'var(--font-display)',fontSize:13,fontWeight:800,letterSpacing:2.5,color:'var(--accent)',userSelect:'none',marginRight:6}}>
-          DESIGN<span style={{fontWeight:300,color:'var(--text-muted)',fontSize:11}}>EDITOR</span>
-        </span>
+        <Logo size={24} />
 
         <div style={{width:1,height:24,background:'var(--border-subtle)',margin:'0 10px'}}/>
 

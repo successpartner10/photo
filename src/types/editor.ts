@@ -1,4 +1,4 @@
-// ---- Complete Type Definitions for AI-Powered Design Editor ----
+// ---- Inkception — AI Design Studio Type Definitions ----
 
 export type ToolType =
   | 'select' | 'move' | 'rect' | 'ellipse' | 'line'

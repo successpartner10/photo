@@ -1,7 +1,7 @@
 {
-  "name": "DesignEditor — AI Design Tool",
-  "short_name": "DesignEditor",
-  "description": "AI-powered browser-based design tool with layers, vector drawing, and smart editing",
+  "name": "Inkception — AI Design Studio",
+  "short_name": "Inkception",
+  "description": "AI-powered creative studio — design with natural language, not menus",
   "start_url": "/photo/",
   "scope": "/photo/",
   "display": "standalone",
