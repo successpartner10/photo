@@ -1,130 +1,103 @@
-/* ===== Inkception — Photoshop-style Design System ===== */
+/* ═══ Inkception — Bold Mega-Design ═══ */
 :root {
-  --ps-bg: #1e1e1e;
-  --ps-panel: #2d2d2d;
-  --ps-input: #3a3a3a;
-  --ps-hover: #3e3e3e;
-  --ps-active: #4a4a4a;
-  --ps-border: #3a3a3a;
-  --ps-text: #e0e0e0;
-  --ps-text-dim: #a0a0a0;
-  --ps-text-muted: #707070;
-  --ps-accent: #3784f0;
-  --ps-accent-hover: #4d94f7;
-  --ps-danger: #e74856;
-  --ps-success: #16ab5b;
-
-  --topbar-h: 36px;
-  --statusbar-h: 24px;
-  --toolbar-w: 52px;
-  --panel-w: 280px;
+  --bg: #0f0f0f;
+  --surface: #181818;
+  --elevated: #222;
+  --overlay: #2a2a2a;
+  --input: #1c1c1c;
+  --border: #2e2e2e;
+  --text: #f0f0f0;
+  --text2: #aaa;
+  --text3: #666;
+  --accent: #5b9cf5;
+  --accent2: #f5617a;
+  --green: #4cda6a;
+  --amber: #f5a623;
+  --red: #f55050;
+  --nav-h: 52px;
+  --status-h: 28px;
+  --toolbar-w: 60px;
+  --panel-w: 300px;
+  --radius: 6px;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body,#root{height:100%;width:100%;overflow:hidden}
+html,body,#root{height:100%;width:100%;overflow:hidden;background:var(--bg)}
 
 body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  font-size: 12px; font-weight: 400; line-height: 1.4;
-  color: var(--ps-text); background: var(--ps-bg);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 0;
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  color: var(--text); background: var(--bg);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none; touch-action: manipulation;
 }
 
-::-webkit-scrollbar{width:8px;height:8px}
-::-webkit-scrollbar-track{background:var(--ps-bg)}
-::-webkit-scrollbar-thumb{background:var(--ps-input);border-radius:0}
-::-webkit-scrollbar-thumb:hover{background:var(--ps-active)}
-::-webkit-scrollbar-corner{background:var(--ps-bg)}
-::selection{background:var(--ps-accent);color:#fff}
-*:focus-visible{outline:1px solid var(--ps-accent);outline-offset:-1px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::selection{background:var(--accent);color:#fff}
 
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
 
 button {
-  font-family: inherit; cursor: pointer; border: none; background: none;
-  color: inherit; font-size: inherit; font-weight: 400; border-radius: 0;
+  font-family: var(--font); cursor: pointer; border: none; background: none;
+  color: inherit; font-size: inherit; font-weight: 500; border-radius: var(--radius);
+  transition: background .1s, color .1s;
+  -webkit-tap-highlight-color: transparent;
 }
+button:hover{background:var(--elevated)}
+button:active{background:var(--overlay)}
+button:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
 
-input, select, textarea {
-  font-family: inherit; font-size: 11px; color: var(--ps-text);
-  background: var(--ps-input); border: 1px solid var(--ps-border);
-  border-radius: 0; padding: 3px 6px; outline: none;
+input,select,textarea {
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  color: var(--text); background: var(--input);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 10px; outline: none; transition: border-color .15s;
 }
-input:focus, select:focus, textarea:focus { border-color: var(--ps-accent); }
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 
 select {
   cursor: pointer; appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23999'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 6px center;
-  padding-right: 18px;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
 }
-input[type=range] { accent-color: var(--ps-accent); height: 3px; padding: 0; border: none; }
-input[type=checkbox] { accent-color: var(--ps-accent); }
+input[type=range]{accent-color:var(--accent);height:4px;padding:0;border:none}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px}
 
-/* Photoshop panel header */
-.ps-panel-header {
-  display: flex; align-items: center; height: 28px;
-  padding: 0 8px; background: var(--ps-panel);
-  border-bottom: 1px solid #222;
-  font-size: 11px; font-weight: 600; color: var(--ps-text-dim);
-  user-select: none;
-}
+/* ── Shared Shell ── */
+.panel{background:var(--surface);display:flex;flex-direction:column;height:100%}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;user-select:none}
+.divider{height:1px;background:var(--border)}
+.spacer{height:8px}
 
-/* Photoshop tab bar */
-.ps-tabs {
-  display: flex; background: var(--ps-panel); border-bottom: 1px solid #222;
-  height: 28px; align-items: flex-end;
-}
-.ps-tab {
-  padding: 5px 10px; font-size: 10px; color: var(--ps-text-muted);
-  border-right: 1px solid #222; cursor: pointer; background: #252525;
-  border-bottom: 1px solid #222; margin-bottom: -1px;
-  white-space: nowrap;
-}
-.ps-tab-active {
-  color: var(--ps-text); background: var(--ps-panel);
-  border-bottom: 1px solid var(--ps-panel);
-}
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;font-size:13px;font-weight:600;border-radius:var(--radius);cursor:pointer;border:1px solid var(--border);background:var(--elevated);color:var(--text2);gap:6px;transition:all .12s}
+.btn:hover{background:var(--overlay);color:var(--text)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:#6aadff}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn-success{background:var(--green);border-color:var(--green);color:#000;font-weight:700}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-lg{padding:14px 24px;font-size:15px}
+.btn-sm{padding:6px 12px;font-size:11px}
+.btn-block{width:100%}
 
-/* Photoshop menu bar */
-.ps-menubar {
-  display: flex; align-items: center; height: var(--topbar-h);
-  background: var(--ps-panel); border-bottom: 1px solid #222;
-  padding: 0 6px; gap: 0; flex-shrink: 0;
-}
-.ps-menubar button, .ps-menubar span.menu {
-  padding: 4px 8px; font-size: 11px; color: var(--ps-text-dim);
-  border-radius: 0; cursor: pointer;
-}
-.ps-menubar button:hover, .ps-menubar span.menu:hover { background: var(--ps-hover); color: var(--ps-text); }
-.ps-menubar .separator { width: 1px; height: 20px; background: #222; margin: 0 4px; }
+/* ── Tags / Chips ── */
+.tag{display:inline-flex;align-items:center;padding:4px 10px;font-size:10px;font-weight:700;border-radius:20px;gap:4px;letter-spacing:.4px}
+.tag-accent{background:rgba(91,156,245,.15);color:var(--accent)}
+.tag-success{background:rgba(76,218,106,.15);color:var(--green)}
+.tag-warn{background:rgba(245,162,35,.15);color:var(--amber)}
 
-/* Photoshop status bar */
-.ps-statusbar {
-  display: flex; align-items: center; height: var(--statusbar-h);
-  background: var(--ps-panel); border-top: 1px solid #222;
-  padding: 0 8px; font-size: 10px; color: var(--ps-text-muted);
-  flex-shrink: 0;
-}
-
-/* Photoshop-style buttons */
-.ps-btn {
-  padding: 4px 12px; font-size: 11px; border: 1px solid #555;
-  background: var(--ps-input); color: var(--ps-text);
-  cursor: pointer; border-radius: 0;
-}
-.ps-btn:hover { background: var(--ps-hover); border-color: #666; }
-.ps-btn:active { background: var(--ps-active); }
-.ps-btn-accent { background: var(--ps-accent); border-color: var(--ps-accent); color: #fff; }
-.ps-btn-accent:hover { background: var(--ps-accent-hover); }
-
-/* Section divider */
-.ps-divider { height: 1px; background: #222; }
-
+/* ── Responsive ── */
 @media(max-width:1023px){
-  :root{--toolbar-w:0px;--panel-w:100vw;--topbar-h:40px;--statusbar-h:0px}
-  body{font-size:11px}
+  :root{--toolbar-w:0px;--panel-w:100vw;--nav-h:48px}
+  body{font-size:14px}
+  .hide-mobile{display:none!important}
+}
+@media(min-width:1024px){
+  .hide-desktop{display:none!important}
 }
