@@ -3,10 +3,12 @@ import Canvas from '../Canvas/Canvas';
 import Toolbar from '../Toolbar/Toolbar';
 import LayersPanel from '../Panels/LayersPanel';
 import PropertiesPanel from '../Panels/PropertiesPanel';
-import AIPanel from '../Panels/AIPanel';
+import AISuggestionsPanel from '../Panels/AISuggestionsPanel';
+import QuickActionsPanel from '../Panels/QuickActionsPanel';
 import ExportPanel from '../Panels/ExportPanel';
 import TemplatesPanel from '../Panels/TemplatesPanel';
-import QuickActionsPanel from '../Panels/QuickActionsPanel';
+import ReviewStudio from '../Panels/ReviewStudio';
+import CollagePanel from '../Panels/CollagePanel';
 import WelcomeModal from '../Widgets/WelcomeModal';
 import CollaborationDialog from '../Widgets/CollaborationDialog';
 import GradientEditor from '../Widgets/GradientEditor';
@@ -15,15 +17,16 @@ import MobileNav from '../Widgets/MobileNav';
 import { useEditor } from '../../store/editorStore';
 import { PLATFORM_PRESETS } from '../../data/presets';
 
-type RightTab = 'layers' | 'properties' | 'quick-actions' | 'ai' | 'export' | 'templates';
+type RightTab = 'layers' | 'review' | 'actions' | 'collage' | 'ai' | 'export' | 'resize';
 
-const TABS: { id: RightTab; label: string; icon: string }[] = [
-  { id: 'layers', label: 'Layers', icon: '📑' },
-  { id: 'properties', label: 'Props', icon: '⚙' },
-  { id: 'quick-actions', label: 'Actions', icon: '⚡' },
-  { id: 'ai', label: 'AI', icon: '✦' },
-  { id: 'export', label: 'Export', icon: '📤' },
-  { id: 'templates', label: 'Resize', icon: '📐' },
+const TABS: { id: RightTab; label: string; color: string }[] = [
+  { id: 'layers', label: 'LAYERS', color: 'var(--accent)' },
+  { id: 'review', label: 'REVIEW', color: 'var(--accent3)' },
+  { id: 'actions', label: 'ADJUST', color: 'var(--accent2)' },
+  { id: 'collage', label: 'COLLAGE', color: 'var(--accent6)' },
+  { id: 'ai', label: 'AI', color: 'var(--accent5)' },
+  { id: 'export', label: 'EXPORT', color: 'var(--info)' },
+  { id: 'resize', label: 'RESIZE', color: 'var(--accent3)' },
 ];
 
 export default function AppLayout() {
@@ -42,19 +45,14 @@ export default function AppLayout() {
   const canUndo = currentDoc.historyIndex >= 0;
   const canRedo = currentDoc.historyIndex < currentDoc.history.length - 1;
 
-  // Detect mobile
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
+    const check = () => setIsMobile(window.innerWidth < 900);
+    check(); window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Register SW
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/photo/sw.js').catch(() => {});
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/photo/sw.js').catch(() => {});
   }, []);
 
   const handleNewDoc = () => {
@@ -63,306 +61,154 @@ export default function AppLayout() {
   };
 
   const handleOpenFile = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
+    const input = document.createElement('input'); input.type = 'file';
     input.accept = '.psd,.ai,.svg,.pdf,.jpg,.jpeg,.png,.webp,.gif,.tiff,.tif,.bmp,.heic,.heif';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file && canvasRef.current) canvasRef.current.importFile(file);
-    };
-    input.click();
-    setShowFileMenu(false);
+    input.onchange = (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if (file && canvasRef.current) canvasRef.current.importFile(file); };
+    input.click(); setShowFileMenu(false);
   }, []);
 
   const handleSave = useCallback(() => {
-    const c = fabricRef.current;
-    if (!c) return;
-    const dataURL = c.toDataURL({ format: 'png', quality: 1, multiplier: 1 });
-    const a = document.createElement('a');
-    a.download = `${doc.name || 'design'}.png`;
-    a.href = dataURL;
-    a.click();
-    setShowFileMenu(false);
+    const c = fabricRef.current; if (!c) return;
+    const a = document.createElement('a'); a.download = `${doc.name || 'design'}.png`;
+    a.href = c.toDataURL({ format: 'png', quality: 1 }); a.click(); setShowFileMenu(false);
   }, [fabricRef, doc.name]);
 
   const handleSaveAs = useCallback(() => {
-    const c = fabricRef.current;
-    if (!c) return;
-    const dataURL = c.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
-    const a = document.createElement('a');
-    a.download = `${doc.name || 'design'}_2x.png`;
-    a.href = dataURL;
-    a.click();
-    setShowFileMenu(false);
+    const c = fabricRef.current; if (!c) return;
+    const a = document.createElement('a'); a.download = `${doc.name || 'design'}_2x.png`;
+    a.href = c.toDataURL({ format: 'png', quality: 1, multiplier: 2 }); a.click(); setShowFileMenu(false);
   }, [fabricRef, doc.name]);
 
   const handleExportPNG = useCallback(() => {
-    const c = fabricRef.current;
-    if (!c) return;
-    const link = document.createElement('a');
-    link.download = `${doc.name || 'design'}.png`;
-    link.href = c.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
-    link.click();
-    setShowFileMenu(false);
+    const c = fabricRef.current; if (!c) return;
+    const a = document.createElement('a'); a.download = `${doc.name || 'design'}.png`;
+    a.href = c.toDataURL({ format: 'png', quality: 1, multiplier: 2 }); a.click(); setShowFileMenu(false);
   }, [fabricRef, doc.name]);
 
   const handleWelcomeStart = (w: number, h: number) => {
     dispatch({ type: 'SET_CANVAS', payload: { width: w, height: h } });
-    saveSnapshot();
-    setShowWelcome(false);
+    saveSnapshot(); setShowWelcome(false);
   };
 
-  const handleGradientApply = () => { setShowGradient(false); saveSnapshot(); };
-
-  const renderRightPanel = () => {
+  const renderPanel = () => {
     switch (rightTab) {
       case 'layers': return <LayersPanel />;
-      case 'properties': return <PropertiesPanel />;
-      case 'quick-actions': return <QuickActionsPanel />;
-      case 'ai': return <AIPanel />;
+      case 'review': return <ReviewStudio />;
+      case 'actions': return <QuickActionsPanel />;
+      case 'collage': return <CollagePanel />;
+      case 'ai': return <AISuggestionsPanel />;
       case 'export': return <ExportPanel />;
-      case 'templates': return <TemplatesPanel />;
+      case 'resize': return <TemplatesPanel />;
     }
-  };
-
-  const renderMobilePanel = () => {
-    if (!mobileTab) return null;
-    return (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 500, background: 'var(--bg-surface)',
-        display: 'flex', flexDirection: 'column', animation: 'slideUp 0.2s var(--ease-out)',
-      }}>
-        <div className="panel-header" style={{ borderBottom: '1px solid var(--border-default)' }}>
-          <h3>{TABS.find(t => t.id === mobileTab)?.label || 'Panel'}</h3>
-          <button onClick={() => setMobileTab(null)} style={{ fontSize: 18, color: 'var(--text-muted)', padding: '4px 8px' }}>×</button>
-        </div>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          {mobileTab === 'layers' && <LayersPanel />}
-          {mobileTab === 'properties' && <PropertiesPanel />}
-          {mobileTab === 'quick-actions' && <QuickActionsPanel />}
-          {mobileTab === 'ai' && <AIPanel />}
-          {mobileTab === 'export' && <ExportPanel />}
-          {mobileTab === 'templates' && <TemplatesPanel />}
-        </div>
-      </div>
-    );
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg-root)' }}>
-      {/* Modals */}
       {showWelcome && <WelcomeModal onStart={handleWelcomeStart} onClose={() => setShowWelcome(false)} />}
       {showShare && <CollaborationDialog projectName={doc.name} onClose={() => setShowShare(false)} />}
-      {showGradient && <GradientEditor onApply={handleGradientApply} onClose={() => setShowGradient(false)} />}
+      {showGradient && <GradientEditor onApply={() => { setShowGradient(false); saveSnapshot(); }} onClose={() => setShowGradient(false)} />}
 
-      {/* ====================== TOP BAR ====================== */}
+      {/* ═══════════ TOP BAR ═══════════ */}
       <div style={{
-        height: 'var(--topbar-h)',
-        background: 'var(--bg-surface)',
+        height: 'var(--topbar-h)', background: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-subtle)',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 6px',
-        gap: 4,
-        flexShrink: 0,
-        zIndex: 100,
+        display: 'flex', alignItems: 'center', padding: '0 10px', gap: 0,
+        flexShrink: 0, zIndex: 100,
       }}>
-        {/* File menu */}
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 800, letterSpacing: 3, color: 'var(--accent)', marginRight: 8, userSelect: 'none' }}>
+          DESIGN<span style={{ fontWeight: 300, color: 'var(--text-muted)', fontSize: 11 }}>EDITOR</span>
+        </div>
+        <div style={{ width: 1, height: 26, background: 'var(--border-default)', margin: '0 12px' }} />
+
         <div style={{ position: 'relative' }}>
           <button onClick={() => setShowFileMenu(!showFileMenu)}
-            style={{
-              padding: '6px 14px', borderRadius: 'var(--radius-sm)',
-              background: showFileMenu ? 'var(--bg-overlay)' : 'transparent',
-              color: '#fff', fontSize: 12, fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: 5,
-              border: showFileMenu ? '1px solid var(--border-default)' : '1px solid transparent',
-            }}>
-            ☰ File
+            style={{ fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, letterSpacing: 1.5, padding: '6px 14px', borderRadius: 'var(--radius)', background: showFileMenu ? 'var(--bg-overlay)' : 'transparent', color: showFileMenu ? '#fff' : 'var(--text-secondary)', border: showFileMenu ? '1px solid var(--border-default)' : '1px solid transparent' }}>
+            FILE
           </button>
-          {showFileMenu && (
-            <FileMenu
-              onClose={() => setShowFileMenu(false)}
-              onNew={handleNewDoc}
-              onOpen={handleOpenFile}
-              onSave={handleSave}
-              onSaveAs={handleSaveAs}
-              onExportPNG={handleExportPNG}
-              onShare={() => { setShowShare(true); setShowFileMenu(false); }}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onUndo={() => dispatch({ type: 'UNDO' })}
-              onRedo={() => dispatch({ type: 'REDO' })}
-            />
-          )}
+          {showFileMenu && <FileMenu onClose={() => setShowFileMenu(false)} onNew={handleNewDoc} onOpen={handleOpenFile} onSave={handleSave} onSaveAs={handleSaveAs} onExportPNG={handleExportPNG} onShare={() => { setShowShare(true); setShowFileMenu(false); }} canUndo={canUndo} canRedo={canRedo} onUndo={() => dispatch({ type: 'UNDO' })} onRedo={() => dispatch({ type: 'REDO' })} />}
         </div>
 
-        {/* Section divider */}
-        <div style={{ width: 1, height: 24, background: 'var(--border-subtle)', margin: '0 6px' }} />
+        <div style={{ width: 1, height: 26, background: 'var(--border-default)', margin: '0 12px' }} />
 
-        {/* Document tabs */}
-        <div style={{ display: 'flex', gap: 1, flex: 1, overflow: 'hidden', minWidth: 0 }}>
+        <div style={{ display: 'flex', gap: 0, flex: 1, overflow: 'hidden', minWidth: 0 }}>
           {state.documents.map(d => (
-            <div key={d.id}
-              onClick={() => dispatch({ type: 'SWITCH_DOCUMENT', payload: d.id })}
-              style={{
-                padding: '8px 12px', borderRadius: '6px 6px 0 0',
-                fontSize: 11, cursor: 'pointer', maxWidth: 150,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: d.id === state.activeDocumentId ? 'var(--bg-elevated)' : 'transparent',
-                color: d.id === state.activeDocumentId ? 'var(--text-primary)' : 'var(--text-muted)',
-                borderBottom: d.id === state.activeDocumentId
-                  ? '2px solid var(--accent)'
-                  : '2px solid transparent',
-                transition: 'all 0.12s var(--ease-out)',
-              }}>
-              <span style={{ fontSize: 9, color: d.isDirty ? 'var(--warning)' : 'var(--success)' }}>
-                {d.isDirty ? '●' : '○'}
-              </span>
-              <span>{d.name}</span>
-              {state.documents.length > 1 && (
-                <span onClick={e => { e.stopPropagation(); dispatch({ type: 'CLOSE_DOCUMENT', payload: d.id }); }}
-                  style={{ fontSize: 13, color: 'var(--text-disabled)', lineHeight: 1, marginLeft: 2, fontWeight: 700 }}>×</span>
-              )}
+            <div key={d.id} onClick={() => dispatch({ type: 'SWITCH_DOCUMENT', payload: d.id })}
+              style={{ padding: '9px 14px', borderRadius: '4px 4px 0 0', fontSize: 9, cursor: 'pointer', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: 0.5, background: d.id === state.activeDocumentId ? 'var(--bg-elevated)' : 'transparent', color: d.id === state.activeDocumentId ? '#fff' : 'var(--text-muted)', borderBottom: d.id === state.activeDocumentId ? '2px solid var(--accent)' : '2px solid transparent' }}>
+              <span style={{ fontSize: 7, color: d.isDirty ? 'var(--warning)' : 'var(--text-disabled)', fontWeight: 800 }}>{d.isDirty ? '●' : '○'}</span>
+              {d.name}
+              {state.documents.length > 1 && <span onClick={e => { e.stopPropagation(); dispatch({ type: 'CLOSE_DOCUMENT', payload: d.id }); }} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-disabled)', marginLeft: 2 }}>×</span>}
             </div>
           ))}
-          <button onClick={handleNewDoc} style={{
-            padding: '8px 10px', color: 'var(--text-muted)', fontSize: 15, fontWeight: 300,
-          }}>+</button>
+          <button onClick={handleNewDoc} style={{ padding: '8px 10px', fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 300, color: 'var(--text-muted)' }}>+</button>
         </div>
 
-        {/* Section divider */}
-        <div style={{ width: 1, height: 24, background: 'var(--border-subtle)', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 26, background: 'var(--border-default)', margin: '0 12px' }} />
 
-        {/* Quick actions */}
         <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={() => dispatch({ type: 'UNDO' })} disabled={!canUndo}
-            style={topAction} title="Undo (Ctrl+Z)">↩</button>
-          <button onClick={() => dispatch({ type: 'REDO' })} disabled={!canRedo}
-            style={topAction} title="Redo (Ctrl+Shift+Z)">↪</button>
+          <button onClick={() => dispatch({ type: 'UNDO' })} disabled={!canUndo} style={topBtn} title="Undo">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </button>
+          <button onClick={() => dispatch({ type: 'REDO' })} disabled={!canRedo} style={topBtn} title="Redo">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
 
-          <div style={{ width: 1, height: 18, background: 'var(--border-subtle)', margin: '0 4px' }} />
+          <div style={{ width: 1, height: 16, background: 'var(--border-default)', margin: '0 6px' }} />
 
-          <select value={`${doc.canvas.width}x${doc.canvas.height}`}
-            onChange={e => {
-              const [w, h] = e.target.value.split('x').map(Number);
-              if (w && h) { dispatch({ type: 'SET_CANVAS', payload: { width: w, height: h } }); saveSnapshot(); }
-            }}
-            style={{
-              background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
-              color: 'var(--text-secondary)', padding: '4px 24px 4px 8px', borderRadius: 'var(--radius-sm)',
-              fontSize: 10, maxWidth: 120, cursor: 'pointer',
-            }}>
+          <select value={`${doc.canvas.width}x${doc.canvas.height}`} onChange={e => { const [w,h] = e.target.value.split('x').map(Number); if(w&&h) { dispatch({ type: 'SET_CANVAS', payload: { width: w, height: h } }); saveSnapshot(); } }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 600, letterSpacing: 0.5, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', padding: '5px 24px 5px 8px', borderRadius: 'var(--radius)', maxWidth: 120 }}>
             <option>{doc.canvas.width}×{doc.canvas.height}</option>
-            {PLATFORM_PRESETS.filter(p => p.id !== 'custom').slice(0, 6).map(p => (
-              <option key={p.id} value={`${p.width}x${p.height}`}>{p.platform}: {p.width}×{p.height}</option>
-            ))}
+            {PLATFORM_PRESETS.filter(p => p.id !== 'custom').slice(0, 6).map(p => <option key={p.id} value={`${p.width}x${p.height}`}>{p.platform}: {p.width}×{p.height}</option>)}
           </select>
 
-          <button onClick={handleSave} style={{ ...topAction, color: 'var(--success)' }} title="Save (Ctrl+S)">💾</button>
-          <button onClick={() => setShowShare(true)} style={{ ...topAction, color: 'var(--info)' }} title="Share">👥</button>
-          <button onClick={() => setShowGradient(true)} style={{ ...topAction, color: 'var(--warning)' }} title="Gradient">◧</button>
+          <button onClick={handleSave} style={{ ...topBtn, color: 'var(--success)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </button>
+          <button onClick={() => setShowShare(true)} style={{ ...topBtn, color: 'var(--info)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
 
-          <div style={{ width: 1, height: 18, background: 'var(--border-subtle)', margin: '0 4px' }} />
+          <div style={{ width: 1, height: 16, background: 'var(--border-default)', margin: '0 6px' }} />
 
           <button onClick={() => dispatch({ type: 'SET_BASIC_MODE', payload: !basicMode })}
-            style={{
-              ...topAction, fontSize: 10, fontWeight: 600,
-              color: basicMode ? 'var(--accent)' : 'var(--text-muted)',
-              border: basicMode ? '1px solid var(--border-accent)' : '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-sm)', padding: '3px 8px',
-            }}>
-            {basicMode ? 'Basic' : 'Advanced'}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, letterSpacing: 1, color: basicMode ? 'var(--accent)' : 'var(--text-muted)', border: basicMode ? '1px solid rgba(124,92,252,0.3)' : '1px solid var(--border-default)', borderRadius: 'var(--radius)', padding: '4px 10px', background: basicMode ? 'rgba(124,92,252,0.08)' : 'transparent' }}>
+            {basicMode ? 'BASIC' : 'ADVANCED'}
           </button>
         </div>
       </div>
 
-      {/* ====================== MAIN BODY ====================== */}
+      {/* ═══════════ MAIN BODY ═══════════ */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {!isMobile && <Toolbar />}
         <Canvas ref={canvasRef} />
 
-        {/* Right panel (desktop only) */}
         {!isMobile && (
-          <div style={{
-            width: 'var(--panel-w)', background: 'var(--bg-surface)',
-            borderLeft: '1px solid var(--border-subtle)',
-            display: 'flex', flexDirection: 'column', flexShrink: 0,
-          }}>
-            {/* Tab bar */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
+          <div style={{ width: 'var(--panel-w)', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', overflowX: 'auto' }}>
               {TABS.map(tab => (
                 <button key={tab.id} onClick={() => setRightTab(tab.id)}
-                  style={{
-                    flex: 1, padding: '10px 3px', fontSize: 13,
-                    background: rightTab === tab.id ? 'var(--bg-surface)' : 'transparent',
-                    border: 'none',
-                    borderBottom: rightTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
-                    color: rightTab === tab.id ? '#fff' : 'var(--text-muted)',
-                    cursor: 'pointer', transition: 'all 0.12s var(--ease-out)',
-                  }}>
-                  {tab.icon}
+                  style={{ flex: 1, padding: '10px 3px', fontFamily: 'var(--font-display)', fontSize: 7, fontWeight: rightTab === tab.id ? 800 : 600, letterSpacing: 1.2, background: rightTab === tab.id ? 'var(--bg-surface)' : 'transparent', border: 'none', borderBottom: rightTab === tab.id ? `2px solid ${tab.color}` : '2px solid transparent', color: rightTab === tab.id ? tab.color : 'var(--text-disabled)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.1s' }}>
+                  {tab.label}
                 </button>
               ))}
             </div>
-            <div style={{ flex: 1, overflow: 'hidden' }}>{renderRightPanel()}</div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>{renderPanel()}</div>
           </div>
         )}
       </div>
 
-      {/* ====================== MOBILE BOTTOM NAV ====================== */}
-      {isMobile && (
-        <MobileNav
-          tabs={TABS}
-          activeTab={mobileTab}
-          onSelect={(id) => setMobileTab(mobileTab === id ? null : id)}
-          onFileMenu={() => setShowFileMenu(true)}
-        />
-      )}
+      {isMobile && <MobileNav tabs={TABS} activeTab={mobileTab} onSelect={(id: any) => setMobileTab(mobileTab === id ? null : id)} onFileMenu={() => setShowFileMenu(true)} />}
 
-      {/* ====================== MOBILE PANEL OVERLAY ====================== */}
-      {isMobile && renderMobilePanel()}
-
-      {/* ====================== STATUS BAR ====================== */}
-      <div style={{
-        height: 'var(--statusbar-h)',
-        background: 'var(--bg-surface)',
-        borderTop: '1px solid var(--border-subtle)',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 12px',
-        gap: 14,
-        fontSize: 10,
-        flexShrink: 0,
-        zIndex: 80,
-      }}>
-        <span style={{ color: 'var(--text-muted)' }}>
-          Tool: <span style={{ color: 'var(--text-secondary)' }}>{state.tool}</span>
-        </span>
-        <span style={{ color: 'var(--text-muted)' }}>
-          Layers: <span style={{ color: 'var(--text-secondary)' }}>{doc.layers.length}</span>
-        </span>
-        <span style={{ color: 'var(--text-muted)' }}>
-          Mode: <span style={{ color: basicMode ? 'var(--accent)' : 'var(--text-secondary)' }}>
-            {basicMode ? 'Basic' : 'Advanced'}
-          </span>
-        </span>
+      {/* ═══════════ STATUS BAR ═══════════ */}
+      <div style={{ height: 'var(--statusbar-h)', background: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 14px', gap: 16, fontSize: 8, flexShrink: 0, zIndex: 80, fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: 0.8 }}>
+        <span style={{ color: 'var(--text-muted)' }}>TOOL <span style={{ color: 'var(--text-secondary)' }}>{state.tool.toUpperCase()}</span></span>
+        <span style={{ color: 'var(--text-muted)' }}>LAYERS <span style={{ color: 'var(--text-secondary)' }}>{doc.layers.length}</span></span>
         <div style={{ flex: 1 }} />
-        <span style={{ color: doc.isDirty ? 'var(--warning)' : 'var(--success)' }}>
-          {doc.isDirty ? '● Unsaved' : '○ Saved'}
-          {doc.lastSaved ? ` · ${new Date(doc.lastSaved).toLocaleTimeString()}` : ''}
-        </span>
-        <span style={{ color: 'var(--border-strong)' }}>|</span>
-        <span style={{ color: 'var(--text-disabled)' }}>
-          Ctrl+S Save · Ctrl+Z Undo · Scroll Zoom
-        </span>
+        <span style={{ color: doc.isDirty ? 'var(--warning)' : 'var(--text-disabled)', fontWeight: 700 }}>{doc.isDirty ? '● UNSAVED' : 'SAVED'}</span>
+        <span style={{ color: 'var(--text-disabled)', fontSize: 7 }}>|</span>
+        <span style={{ color: 'var(--text-disabled)', fontSize: 7 }}>CTRL+S SAVE · CTRL+Z UNDO · SCROLL ZOOM · SPACE PAN</span>
       </div>
     </div>
   );
 }
 
-const topAction: React.CSSProperties = {
-  background: 'transparent', border: 'none', color: 'var(--text-secondary)',
-  cursor: 'pointer', fontSize: 15, padding: '4px 6px', borderRadius: 'var(--radius-sm)',
-  display: 'flex', alignItems: 'center', transition: 'all 0.1s',
-};
+const topBtn: React.CSSProperties = { background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px 5px', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center' };

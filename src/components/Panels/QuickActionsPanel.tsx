@@ -1,282 +1,83 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { filters } from 'fabric';
 import { useEditor } from '../../store/editorStore';
 
-// ── One-click Photoshop-style quick actions ──
-
-interface QuickAction {
-  id: string;
-  label: string;
-  icon: string;
-  category: 'adjust' | 'color' | 'filter' | 'transform' | 'ai';
-  onClick: () => void;
-}
-
 export default function QuickActionsPanel() {
-  const { fabricRef, saveSnapshot, doc } = useEditor();
-  const [open, setOpen] = useState(false);
-
-  const getActive = useCallback(() => {
-    const c = fabricRef.current;
-    if (!c) return null;
-    return c.getActiveObject();
-  }, [fabricRef]);
+  const { fabricRef, saveSnapshot } = useEditor();
 
   const applyToCanvas = useCallback((fn: (c: any) => void) => {
-    const c = fabricRef.current;
-    if (!c) return;
-    fn(c);
-    c.renderAll();
-    saveSnapshot();
+    const c = fabricRef.current; if (!c) return;
+    fn(c); c.renderAll(); saveSnapshot();
   }, [fabricRef, saveSnapshot]);
 
-  // ── COLOR ADJUSTMENTS ──
-  const handleInvert = () => applyToCanvas(c => {
+  const run = (fn: (o: any) => void) => applyToCanvas(c => {
     c.getObjects().forEach((o: any) => {
       if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Invert()); o.applyFilters(); }
+      if (o.filters) { fn(o); o.applyFilters(); }
     });
   });
 
-  const handleGrayscale = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Grayscale()); o.applyFilters(); }
-    });
-  });
-
-  const handleSepia = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Sepia()); o.applyFilters(); }
-    });
-  });
-
-  const handleVintage = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) {
-        o.filters.push(new filters.Sepia());
-        o.filters.push(new filters.Brightness({ brightness: -0.05 }));
-        o.filters.push(new filters.Contrast({ contrast: -0.1 }));
-        o.applyFilters();
-      }
-    });
-  });
-
-  // ── BRIGHTNESS/CONTRAST ──
-  const handleBrighten = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Brightness({ brightness: 0.1 })); o.applyFilters(); }
-    });
-  });
-
-  const handleDarken = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Brightness({ brightness: -0.1 })); o.applyFilters(); }
-    });
-  });
-
-  const handleMoreContrast = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Contrast({ contrast: 0.15 })); o.applyFilters(); }
-    });
-  });
-
-  const handleLessContrast = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Contrast({ contrast: -0.1 })); o.applyFilters(); }
-    });
-  });
-
-  const handleMoreSaturation = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Saturation({ saturation: 0.2 })); o.applyFilters(); }
-    });
-  });
-
-  const handleDesaturate = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Saturation({ saturation: -0.5 })); o.applyFilters(); }
-    });
-  });
-
-  // ── BLUR / SHARPEN ──
-  const handleBlur = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Blur({ blur: 0.3 })); o.applyFilters(); }
-    });
-  });
-
-  const handleMoreBlur = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Blur({ blur: 0.7 })); o.applyFilters(); }
-    });
-  });
-
-  const handleSharpen = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Contrast({ contrast: 0.1 })); o.applyFilters(); }
-    });
-  });
-
-  // ── NOISE ──
-  const handleNoise = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Noise({ noise: 20 })); o.applyFilters(); }
-    });
-  });
-
-  const handlePixelate = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      if (o.filters) { o.filters.push(new filters.Pixelate({ blocksize: 6 })); o.applyFilters(); }
-    });
-  });
-
-  // ── TRANSFORM ──
-  const handleFlipH = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      o.set('flipX', !o.flipX);
-    });
-  });
-
-  const handleFlipV = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      o.set('flipY', !o.flipY);
-    });
-  });
-
-  const handleRotate90 = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      o.rotate((o.angle || 0) + 90);
-    });
-  });
-
-  const handleDupe = () => applyToCanvas(c => {
-    const active = c.getActiveObject();
-    if (!active) return;
-    active.clone().then((cloned: any) => {
-      cloned.set({ left: (cloned.left || 0) + 20, top: (cloned.top || 0) + 20 });
-      c.add(cloned);
-      c.setActiveObject(cloned);
-    });
-  });
-
-  // ── RESET ──
-  const handleResetFilters = () => applyToCanvas(c => {
-    c.getObjects().forEach((o: any) => {
-      if (o.data?.isBackground || o.data?.isCheckerboard) return;
-      o.filters = [];
-      o.applyFilters();
-    });
-  });
-
-  const allActions: QuickAction[] = [
-    { id: 'invert', label: 'Invert Colors', icon: '🔄', category: 'color', onClick: handleInvert },
-    { id: 'grayscale', label: 'Black & White', icon: '⬜', category: 'color', onClick: handleGrayscale },
-    { id: 'sepia', label: 'Sepia Tone', icon: '🟫', category: 'color', onClick: handleSepia },
-    { id: 'vintage', label: 'Vintage Look', icon: '📷', category: 'color', onClick: handleVintage },
-    { id: 'brighten', label: 'Brighten +', icon: '☀️', category: 'adjust', onClick: handleBrighten },
-    { id: 'darken', label: 'Darken −', icon: '🌙', category: 'adjust', onClick: handleDarken },
-    { id: 'contrast-up', label: 'More Contrast', icon: '◐', category: 'adjust', onClick: handleMoreContrast },
-    { id: 'contrast-down', label: 'Less Contrast', icon: '◑', category: 'adjust', onClick: handleLessContrast },
-    { id: 'saturate-up', label: 'Saturate +', icon: '🌈', category: 'adjust', onClick: handleMoreSaturation },
-    { id: 'desaturate', label: 'Desaturate', icon: '🌫️', category: 'adjust', onClick: handleDesaturate },
-    { id: 'blur', label: 'Blur', icon: '💧', category: 'filter', onClick: handleBlur },
-    { id: 'blur-more', label: 'Blur More', icon: '💦', category: 'filter', onClick: handleMoreBlur },
-    { id: 'sharpen', label: 'Sharpen', icon: '🔪', category: 'filter', onClick: handleSharpen },
-    { id: 'noise', label: 'Add Noise', icon: '📺', category: 'filter', onClick: handleNoise },
-    { id: 'pixelate', label: 'Pixelate', icon: '👾', category: 'filter', onClick: handlePixelate },
-    { id: 'flip-h', label: 'Flip Horizontal', icon: '↔️', category: 'transform', onClick: handleFlipH },
-    { id: 'flip-v', label: 'Flip Vertical', icon: '↕️', category: 'transform', onClick: handleFlipV },
-    { id: 'rotate-90', label: 'Rotate 90°', icon: '↻', category: 'transform', onClick: handleRotate90 },
-    { id: 'duplicate', label: 'Duplicate Layer', icon: '📋', category: 'transform', onClick: handleDupe },
-    { id: 'reset', label: 'Reset Filters', icon: '🔄', category: 'adjust', onClick: handleResetFilters },
+  const actions = [
+    { id: 'invert', label: 'INVERT', cat: 'COLOR', onClick: () => run(o => { o.filters.push(new filters.Invert()); }) },
+    { id: 'bw', label: 'B&W', cat: 'COLOR', onClick: () => run(o => { o.filters.push(new filters.Grayscale()); }) },
+    { id: 'sepia', label: 'SEPIA', cat: 'COLOR', onClick: () => run(o => { o.filters.push(new filters.Sepia()); }) },
+    { id: 'vintage', label: 'VINTAGE', cat: 'COLOR', onClick: () => run(o => { o.filters.push(new filters.Sepia()); o.filters.push(new filters.Brightness({ brightness: -0.05 })); o.filters.push(new filters.Contrast({ contrast: -0.1 })); }) },
+    { id: 'brighten', label: 'BRIGHTEN', cat: 'ADJUST', onClick: () => run(o => { o.filters.push(new filters.Brightness({ brightness: 0.1 })); }) },
+    { id: 'darken', label: 'DARKEN', cat: 'ADJUST', onClick: () => run(o => { o.filters.push(new filters.Brightness({ brightness: -0.1 })); }) },
+    { id: 'contrast+', label: 'CONTRAST +', cat: 'ADJUST', onClick: () => run(o => { o.filters.push(new filters.Contrast({ contrast: 0.15 })); }) },
+    { id: 'contrast-', label: 'CONTRAST −', cat: 'ADJUST', onClick: () => run(o => { o.filters.push(new filters.Contrast({ contrast: -0.1 })); }) },
+    { id: 'sat+', label: 'SATURATE', cat: 'ADJUST', onClick: () => run(o => { o.filters.push(new filters.Saturation({ saturation: 0.2 })); }) },
+    { id: 'desat', label: 'DESATURATE', cat: 'ADJUST', onClick: () => run(o => { o.filters.push(new filters.Saturation({ saturation: -0.5 })); }) },
+    { id: 'blur', label: 'BLUR', cat: 'FILTERS', onClick: () => run(o => { o.filters.push(new filters.Blur({ blur: 0.3 })); }) },
+    { id: 'blur+', label: 'BLUR MORE', cat: 'FILTERS', onClick: () => run(o => { o.filters.push(new filters.Blur({ blur: 0.7 })); }) },
+    { id: 'sharpen', label: 'SHARPEN', cat: 'FILTERS', onClick: () => run(o => { o.filters.push(new filters.Contrast({ contrast: 0.1 })); }) },
+    { id: 'noise', label: 'NOISE', cat: 'FILTERS', onClick: () => run(o => { o.filters.push(new filters.Noise({ noise: 20 })); }) },
+    { id: 'pixel', label: 'PIXELATE', cat: 'FILTERS', onClick: () => run(o => { o.filters.push(new filters.Pixelate({ blocksize: 6 })); }) },
+    { id: 'flip-h', label: 'FLIP H', cat: 'TRANSFORM', onClick: () => applyToCanvas(c => { c.getObjects().forEach((o: any) => { if (!o.data?.isBackground && !o.data?.isCheckerboard) o.set('flipX', !o.flipX); }); }) },
+    { id: 'flip-v', label: 'FLIP V', cat: 'TRANSFORM', onClick: () => applyToCanvas(c => { c.getObjects().forEach((o: any) => { if (!o.data?.isBackground && !o.data?.isCheckerboard) o.set('flipY', !o.flipY); }); }) },
+    { id: 'rot90', label: 'ROTATE 90°', cat: 'TRANSFORM', onClick: () => applyToCanvas(c => { c.getObjects().forEach((o: any) => { if (!o.data?.isBackground && !o.data?.isCheckerboard) o.rotate((o.angle || 0) + 90); }); }) },
+    { id: 'reset', label: 'RESET ALL', cat: 'ADJUST', onClick: () => run(o => { o.filters = []; }) },
   ];
 
-  const categories = ['adjust', 'color', 'filter', 'transform'] as const;
-  const categoryLabels: Record<string, string> = {
-    adjust: 'Adjustments', color: 'Color', filter: 'Filters', transform: 'Transform',
-  };
+  const cats = ['COLOR', 'ADJUST', 'FILTERS', 'TRANSFORM'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="panel-header">
-        <h3>Quick Actions</h3>
-        <span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>{allActions.length} ops</span>
+        <span className="panel-title">QUICK ACTIONS</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)' }}>1-CLICK</span>
       </div>
-
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-        {categories.map(cat => {
-          const items = allActions.filter(a => a.category === cat);
+        {cats.map(cat => {
+          const items = actions.filter(a => a.cat === cat);
           return (
-            <div key={cat} style={{ marginBottom: 12 }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)',
-                textTransform: 'uppercase', letterSpacing: 1,
-                padding: '4px 6px 8px',
-              }}>
-                {categoryLabels[cat]}
+            <div key={cat} style={{ marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 800, letterSpacing: 2, color: 'var(--text-disabled)', padding: '2px 6px 8px' }}>
+                {cat}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
                 {items.map(a => (
-                  <button key={a.id} onClick={a.onClick}
-                    style={{
-                      padding: '8px 6px', borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-default)',
-                      background: 'var(--bg-elevated)',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer', fontSize: 10,
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      transition: 'all 0.1s',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.border = '1px solid var(--border-accent)';
-                      e.currentTarget.style.background = 'var(--bg-overlay)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.border = '1px solid var(--border-default)';
-                      e.currentTarget.style.background = 'var(--bg-elevated)';
-                    }}>
-                    <span style={{ fontSize: 13 }}>{a.icon}</span>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {a.label}
-                    </span>
-                  </button>
+                  <button key={a.id} onClick={a.onClick} style={{
+                    padding: '9px 6px', borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-default)', background: 'var(--bg-elevated)',
+                    cursor: 'pointer', transition: 'all 0.08s',
+                    fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700,
+                    color: 'var(--text-secondary)', letterSpacing: 1,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(124,92,252,0.3)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.border = '1px solid var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                  >{a.label}</button>
                 ))}
               </div>
             </div>
           );
         })}
-
-        {/* AI shortcut */}
-        <div style={{
-          marginTop: 8, padding: 12,
-          background: 'linear-gradient(135deg, var(--accent-glow), transparent)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-accent)',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: 20, marginBottom: 4 }}>✦</div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-light)', marginBottom: 6 }}>
-            Let AI handle it
+        <div style={{ marginTop: 10, padding: 14, border: '1px solid rgba(124,92,252,0.15)', borderRadius: 'var(--radius-md)', textAlign: 'center', background: 'var(--bg-elevated)' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: 'var(--accent)', letterSpacing: 1.5, marginBottom: 4 }}>
+            AI TAB
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            Switch to AI tab for auto enhancement, background removal, generative fill & more
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 500, color: 'var(--text-muted)' }}>
+            Auto enhance, background removal, generative fill & more
           </div>
         </div>
       </div>

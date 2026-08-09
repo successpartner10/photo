@@ -1,10 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useEditor } from '../../store/editorStore';
 import { EditorLayer, LayerType } from '../../types/editor';
 
-const LAYER_TYPE_LABELS: Record<LayerType, string> = {
-  raster: '🖼', vector: '🔷', text: '📝',
-  adjustment: '⚙️', 'smart-object': '🧠', group: '📁',
+const LAYER_LABELS: Record<LayerType, string> = {
+  raster: 'R', vector: 'V', text: 'T', adjustment: 'Adj', 'smart-object': 'Smart', group: 'Grp',
 };
 
 export default function LayersPanel() {
@@ -13,182 +12,141 @@ export default function LayersPanel() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; layerId: string } | null>(null);
 
   const layers = doc.layers;
-  const filteredLayers = layers.filter(l =>
-    l.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = layers.filter(l => l.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handleAddLayer = (type: LayerType) => {
-    const name = type.charAt(0).toUpperCase() + type.slice(1);
-    addLayer({
-      name: `${name} ${layers.length}`,
-      type,
-      visible: true, locked: false, opacity: 1,
-      blendMode: 'normal', isGroup: type === 'group',
-    });
+  const handleAdd = (type: LayerType) => {
+    addLayer({ name: type.charAt(0).toUpperCase() + type.slice(1), type,
+      visible: true, locked: false, opacity: 1, blendMode: 'normal', isGroup: type === 'group' });
   };
 
-  const handleRightClick = useCallback((e: React.MouseEvent, layerId: string) => {
-    e.preventDefault();
+  const handleRightClick = (e: React.MouseEvent, layerId: string) => {
+    e.preventDefault(); e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY, layerId });
-  }, []);
+  };
 
-  const handleContextAction = useCallback((action: string, layerId: string) => {
+  const ctxAction = (action: string, id: string) => {
     setContextMenu(null);
     switch (action) {
-      case 'duplicate': duplicateLayer(layerId); break;
-      case 'delete': removeLayer(layerId); break;
-      case 'smart-object':
-        updateLayerProp(layerId, { type: 'smart-object', smartObjectRef: `smart-${layerId}`, name: `${layers.find(l => l.id === layerId)?.name || 'Layer'} (Smart)` });
-        break;
-      case 'clipping-mask':
-        updateLayerProp(layerId, { clippingMaskId: `clip-${Date.now()}` });
-        break;
-      case 'merge-down': {
-        const idx = layers.findIndex(l => l.id === layerId);
-        if (idx > 0) {
-          dispatch({ type: 'MERGE_LAYERS', payload: [layerId, layers[idx - 1].id] });
-        }
+      case 'dup': duplicateLayer(id); break;
+      case 'del': removeLayer(id); break;
+      case 'smart': updateLayerProp(id, { type: 'smart-object', smartObjectRef: `s-${Date.now()}` }); break;
+      case 'clip': updateLayerProp(id, { clippingMaskId: `c-${Date.now()}` }); break;
+      case 'merge': {
+        const idx = layers.findIndex(l => l.id === id);
+        if (idx > 0) dispatch({ type: 'MERGE_LAYERS', payload: [id, layers[idx - 1].id] });
         break;
       }
     }
-  }, [duplicateLayer, removeLayer, updateLayerProp, layers, dispatch]);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <div style={{
-        padding: '10px 12px', borderBottom: '1px solid #333',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#ccc', textTransform: 'uppercase', letterSpacing: 1 }}>
-          Layers
-        </span>
-        <span style={{ fontSize: 11, color: '#666' }}>{layers.length}</span>
+      <div className="panel-header">
+        <span className="panel-title">LAYERS</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)' }}>{layers.length}</span>
       </div>
 
-      {/* Blend mode bar */}
-      <div style={{
-        padding: '6px 8px', display: 'flex', gap: 4, alignItems: 'center', fontSize: 10, color: '#777',
-        borderBottom: '1px solid #222',
-      }}>
-        <span>Blend:</span>
-        <select
-          value={layers.find(l => l.id === (doc.layers[doc.layers.length - 1]?.id))?.blendMode || 'normal'}
-          onChange={e => {
-            const lastId = layers[layers.length - 1]?.id;
-            if (lastId) updateLayerProp(lastId, { blendMode: e.target.value as any });
-          }}
-          style={{
-            background: '#1a1a1a', border: '1px solid #333', color: '#aaa',
-            fontSize: 10, padding: '2px 4px', borderRadius: 3, cursor: 'pointer',
-          }}>
+      <div style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
+        <select value={layers[layers.length - 1]?.blendMode || 'normal'}
+          onChange={e => { const id = layers[layers.length - 1]?.id; if (id) updateLayerProp(id, { blendMode: e.target.value as any }); }}
+          style={{ width: '100%', fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: 0.5 }}>
           {['normal','multiply','screen','overlay','darken','lighten','color-dodge','color-burn','hard-light','soft-light','difference','exclusion'].map(b => (
-            <option key={b} value={b}>{b}</option>
+            <option key={b} value={b}>{b.toUpperCase()}</option>
           ))}
         </select>
       </div>
 
-      {/* Search */}
       <div style={{ padding: '6px 8px' }}>
-        <input type="text" placeholder="Search layers..." value={search} onChange={e => setSearch(e.target.value)}
-          style={{
-            width: '100%', padding: '5px 8px', borderRadius: 6, border: '1px solid #333',
-            background: '#1a1a1a', color: '#ccc', fontSize: 11, outline: 'none',
-            boxSizing: 'border-box',
-          }} />
+        <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
+          style={{ width: '100%', padding: '6px 10px', fontSize: 10 }} />
       </div>
 
-      {/* Layer list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '2px 4px' }}>
-        {[...filteredLayers].reverse().map((layer, i) => {
-          const isActive = i === 0; // top layer active by position
+      <div style={{ flex: 1, overflowY: 'auto', padding: '2px 5px' }}>
+        {[...filtered].reverse().map((layer) => {
+          const isTop = layer.id === layers[layers.length - 1]?.id;
           return (
             <div key={layer.id}
-              onClick={() => {}} onContextMenu={e => handleRightClick(e, layer.id)}
+              onContextMenu={e => handleRightClick(e, layer.id)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '5px 7px',
-                margin: '1px 0', borderRadius: 6,
-                background: isActive ? '#7C5CFC18' : 'transparent',
-                border: isActive ? '1px solid #7C5CFC33' : '1px solid transparent',
+                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px',
+                margin: '1px 0', borderRadius: 'var(--radius-sm)',
+                background: isTop ? 'var(--accent-dim)' : 'transparent',
+                border: isTop ? '1px solid rgba(124,92,252,0.2)' : '1px solid transparent',
                 cursor: 'pointer', transition: 'background 0.1s',
-                opacity: layer.visible ? 1 : 0.5,
-              }}
-            >
-              {/* Visibility */}
+                opacity: layer.visible ? 1 : 0.35,
+              }}>
               <button onClick={e => { e.stopPropagation(); updateLayerProp(layer.id, { visible: !layer.visible }); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: layer.visible ? '#aaa' : '#555', padding: 0, width: 18 }}>
-                {layer.visible ? '👁' : '—'}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={layer.visible ? 'var(--text-secondary)' : 'var(--text-disabled)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {layer.visible
+                    ? <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
+                    : <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><line x1="1" y1="1" x2="23" y2="23"/></>
+                  }
+                </svg>
               </button>
 
-              {/* Type + smart object badge */}
-              <span style={{ fontSize: 12 }}>
-                {layer.type === 'smart-object' ? '🧠' : LAYER_TYPE_LABELS[layer.type]}
+              <span style={{
+                fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700,
+                color: isTop ? 'var(--accent-light)' : 'var(--text-muted)',
+                width: 18, textAlign: 'center',
+              }}>
+                {layer.type === 'smart-object' ? 'S' : LAYER_LABELS[layer.type]}
               </span>
-              {layer.clippingMaskId && <span style={{ fontSize: 10, color: '#7C5CFC' }}>✂</span>}
 
-              {/* Name */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontSize: 11, color: isActive ? '#fff' : '#bbb',
+                  fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 600,
+                  color: isTop ? '#fff' : 'var(--text-secondary)',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {layer.name}
                 </div>
               </div>
 
-              {/* Lock badge */}
-              {layer.locked && <span style={{ fontSize: 10, color: '#888' }}>🔒</span>}
+              {layer.locked && <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--text-disabled)' }}>LOCK</span>}
+              {layer.clippingMaskId && <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, color: 'var(--accent)' }}>CLIP</span>}
 
-              {/* Opacity mini slider */}
               <input type="range" min={0} max={100} value={Math.round(layer.opacity * 100)}
                 onChange={e => { e.stopPropagation(); updateLayerProp(layer.id, { opacity: +e.target.value / 100 }); }}
-                onClick={e => e.stopPropagation()}
-                style={{ width: 32, height: 3, accentColor: '#7C5CFC', flexShrink: 0 }} />
+                onClick={e => e.stopPropagation()} style={{ width: 28, flexShrink: 0 }} />
             </div>
           );
         })}
       </div>
 
-      {/* Add layer buttons */}
-      <div style={{
-        padding: '6px 8px', borderTop: '1px solid #333',
-        display: 'flex', gap: 3, flexWrap: 'wrap',
-      }}>
-        {(['raster', 'vector', 'text', 'group', 'adjustment'] as LayerType[]).map(type => (
-          <button key={type} onClick={() => handleAddLayer(type)}
-            style={{
-              flex: 1, padding: '4px 2px', borderRadius: 4,
-              border: '1px solid #333', background: '#1e1e1e',
-              color: '#999', cursor: 'pointer', fontSize: 10, whiteSpace: 'nowrap',
-            }}>
-            + {type === 'smart-object' ? 'Smart' : LAYER_TYPE_LABELS[type]} {type}
-          </button>
+      <div style={{ padding: '6px 8px', borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+        {(['raster', 'vector', 'text', 'group', 'adjustment'] as LayerType[]).map(t => (
+          <button key={t} onClick={() => handleAdd(t)} style={{
+            flex: 1, padding: '5px 3px', borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-default)', background: 'var(--bg-elevated)',
+            color: 'var(--text-muted)', cursor: 'pointer',
+            fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, letterSpacing: 0.8, whiteSpace: 'nowrap',
+          }}>+ {LAYER_LABELS[t]}</button>
         ))}
       </div>
 
-      {/* Context menu */}
       {contextMenu && (
         <>
-          <div onClick={() => setContextMenu(null)}
-            style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+          <div onClick={() => setContextMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
           <div style={{
-            position: 'fixed', left: contextMenu.x, top: contextMenu.y,
-            zIndex: 100, background: '#2a2a2a', border: '1px solid #444',
-            borderRadius: 8, padding: 4, minWidth: 140,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 100,
+            background: 'var(--bg-overlay)', border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-md)', padding: 4, minWidth: 160,
+            boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
           }}>
             {[
-              { id: 'duplicate', label: '📋 Duplicate Layer' },
-              { id: 'smart-object', label: '🧠 Convert to Smart Object' },
-              { id: 'clipping-mask', label: '✂ Create Clipping Mask' },
-              { id: 'merge-down', label: '⬇ Merge Down' },
-              { id: 'delete', label: '🗑 Delete Layer', danger: true },
+              { id: 'dup', label: 'DUPLICATE' },
+              { id: 'smart', label: 'SMART OBJECT' },
+              { id: 'clip', label: 'CLIPPING MASK' },
+              { id: 'merge', label: 'MERGE DOWN' },
+              { id: 'del', label: 'DELETE', danger: true },
             ].map(item => (
-              <div key={item.id} onClick={() => handleContextAction(item.id, contextMenu.layerId)}
+              <div key={item.id} onClick={() => ctxAction(item.id, contextMenu.layerId)}
                 style={{
-                  padding: '6px 10px', cursor: 'pointer', fontSize: 11,
-                  color: (item as any).danger ? '#E85D75' : '#ccc',
-                  borderRadius: 4, transition: 'background 0.1s',
+                  padding: '6px 10px', cursor: 'pointer',
+                  fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 600, letterSpacing: 0.8,
+                  color: (item as any).danger ? 'var(--danger)' : 'var(--text-secondary)',
+                  borderRadius: 'var(--radius-sm)',
                 }}>
                 {item.label}
               </div>

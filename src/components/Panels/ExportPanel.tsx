@@ -1,206 +1,134 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useEditor } from '../../store/editorStore';
 import { EXPORT_FORMATS, PLATFORM_PRESETS } from '../../data/presets';
 import { ExportFormat } from '../../types/editor';
 
 export default function ExportPanel() {
-  const { doc, exportCanvas, fabricRef } = useEditor();
+  const { doc, fabricRef } = useEditor();
   const [format, setFormat] = useState<ExportFormat>('png');
   const [quality, setQuality] = useState(90);
-  const [transparency, setTransparency] = useState(true);
   const [dpi, setDpi] = useState(72);
   const [exporting, setExporting] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [exportLayer, setExportLayer] = useState<string>('all');
 
-  const formatInfo = EXPORT_FORMATS.find(f => f.id === format);
-
-  const handleExport = useCallback(() => {
+  const handleExport = () => {
+    const canvas = fabricRef.current; if (!canvas) return;
     setExporting(true);
-    const link = document.createElement('a');
-    const canvas = fabricRef.current;
-    if (!canvas) { setExporting(false); return; }
-
+    const a = document.createElement('a');
     if (format === 'svg') {
-      const svg = canvas.toSVG();
-      const blob = new Blob([svg], { type: 'image/svg+xml' });
-      link.href = URL.createObjectURL(blob);
+      a.href = URL.createObjectURL(new Blob([canvas.toSVG()], { type: 'image/svg+xml' }));
     } else {
-      const mimeMap: Record<string, string> = {
-        png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp',
-        gif: 'image/gif', tiff: 'image/tiff',
-      };
-      const dataURL = canvas.toDataURL({
-        format: format === 'jpg' ? 'jpeg' : format,
-        quality: quality / 100,
-        multiplier: dpi / 72,
-      });
-      link.href = dataURL;
+      a.href = canvas.toDataURL({ format: format === 'jpg' ? 'jpeg' : format, quality: quality / 100, multiplier: dpi / 72 });
     }
-    link.download = `${doc.name || 'export'}.${format}`;
-    link.click();
-    setTimeout(() => setExporting(false), 800);
-  }, [format, quality, dpi, doc.name, fabricRef]);
+    a.download = `${doc.name || 'export'}.${format}`;
+    a.click();
+    setTimeout(() => setExporting(false), 600);
+  };
 
-  const handleBatchExport = useCallback(() => {
+  const handleBatchExport = () => {
+    const canvas = fabricRef.current; if (!canvas || selectedPlatforms.length === 0) return;
     setExporting(true);
-    const canvas = fabricRef.current;
-    if (!canvas || selectedPlatforms.length === 0) { setExporting(false); return; }
-
-    // For demo: export each selected platform size as PNG
     setTimeout(() => {
       selectedPlatforms.forEach(pid => {
-        const preset = PLATFORM_PRESETS.find(p => p.id === pid);
-        if (!preset) return;
-        const dataURL = canvas.toDataURL({
-          format: 'png', quality: 1, multiplier: 1,
-          width: preset.width, height: preset.height,
-        });
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = `${doc.name}_${preset.platform}_${preset.width}x${preset.height}.png`;
-        link.click();
+        const preset = PLATFORM_PRESETS.find(p => p.id === pid); if (!preset) return;
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 1, width: preset.width, height: preset.height });
+        a.download = `${doc.name}_${preset.platform}_${preset.width}x${preset.height}.png`;
+        a.click();
       });
       setExporting(false);
-    }, 300);
-  }, [selectedPlatforms, doc.name, fabricRef]);
+    }, 200);
+  };
 
-  const handleCopyToClipboard = useCallback(() => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
+  const handleCopyToClipboard = () => {
+    const canvas = fabricRef.current; if (!canvas) return;
     canvas.getElement().toBlob((blob: Blob | null) => {
       if (!blob) return;
-      navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ]).catch(() => {});
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).catch(() => {});
     });
-  }, [fabricRef]);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <div style={{
-        padding: '10px 12px', borderBottom: '1px solid #333',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#ccc', textTransform: 'uppercase', letterSpacing: 1 }}>
-          Export
-        </span>
+      <div className="panel-header">
+        <span className="panel-title">EXPORT</span>
         <button onClick={() => setBatchMode(!batchMode)} style={{
-          padding: '3px 10px', borderRadius: 4, fontSize: 10,
-          border: batchMode ? '1px solid #7C5CFC' : '1px solid #444',
-          background: batchMode ? '#7C5CFC22' : 'transparent',
-          color: batchMode ? '#7C5CFC' : '#888', cursor: 'pointer',
-        }}>
-          {batchMode ? 'Single' : 'Batch'}
-        </button>
+          fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 700, letterSpacing: 1.2,
+          padding: '3px 8px', borderRadius: 'var(--radius-sm)',
+          border: batchMode ? '1px solid rgba(124,92,252,0.3)' : '1px solid var(--border-default)',
+          background: batchMode ? 'var(--accent-dim)' : 'transparent',
+          color: batchMode ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+        }}>{batchMode ? 'SINGLE' : 'BATCH'}</button>
       </div>
 
       <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
-        {/* Canvas info */}
-        <div style={{ padding: 8, background: '#1a1a1a', borderRadius: 6, fontSize: 11, color: '#888' }}>
-          Canvas: {doc.canvas.width} × {doc.canvas.height} px
+        <div style={{ padding: 8, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 600, color: 'var(--text-muted)' }}>
+          CANVAS: {doc.canvas.width} × {doc.canvas.height}
         </div>
 
         {!batchMode ? (
           <>
-            <Field label="Format">
-              <select value={format} onChange={e => setFormat(e.target.value as ExportFormat)} style={selectStyle}>
-                {EXPORT_FORMATS.map(f => <option key={f.id} value={f.id}>{f.label} ({f.ext})</option>)}
+            <Field label="FORMAT">
+              <select value={format} onChange={e => setFormat(e.target.value as ExportFormat)} style={{ width: '100%', padding: '7px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+                {EXPORT_FORMATS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
               </select>
             </Field>
-
             {(format === 'jpg' || format === 'webp') && (
-              <Field label={`Quality — ${quality}%`}>
-                <input type="range" min={10} max={100} value={quality} onChange={e => setQuality(+e.target.value)}
-                  style={{ width: '100%', accentColor: '#7C5CFC' }} />
+              <Field label={`QUALITY: ${quality}%`}>
+                <input type="range" min={10} max={100} value={quality} onChange={e => setQuality(+e.target.value)} style={{ width: '100%' }} />
               </Field>
             )}
-
-            {formatInfo?.alpha && (
-              <Field label="Transparency">
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#bbb', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={transparency} onChange={e => setTransparency(e.target.checked)} />
-                  Include transparency
-                </label>
-              </Field>
-            )}
-
             {format !== 'svg' && (
               <Field label="DPI">
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 5 }}>
                   {[72, 150, 300].map(d => (
                     <button key={d} onClick={() => setDpi(d)} style={{
-                      flex: 1, padding: '6px', borderRadius: 4,
-                      border: dpi === d ? '1px solid #7C5CFC' : '1px solid #333',
-                      background: dpi === d ? '#7C5CFC22' : '#1a1a1a',
-                      color: dpi === d ? '#fff' : '#888', cursor: 'pointer', fontSize: 11,
+                      flex: 1, padding: '6px', borderRadius: 'var(--radius-sm)',
+                      border: dpi === d ? '1px solid rgba(124,92,252,0.3)' : '1px solid var(--border-default)',
+                      background: dpi === d ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                      fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700,
+                      color: dpi === d ? '#fff' : 'var(--text-muted)', cursor: 'pointer',
                     }}>{d}</button>
                   ))}
                 </div>
               </Field>
             )}
-
-            {/* Selective export */}
-            <Field label="Export scope">
-              <select value={exportLayer} onChange={e => setExportLayer(e.target.value)} style={selectStyle}>
-                <option value="all">Entire canvas</option>
-                <option value="selection">Selected layers only</option>
-                <option value="artboard">Visible artboard</option>
-              </select>
-            </Field>
-
-            <button onClick={handleExport} disabled={exporting}
-              style={{
-                marginTop: 4, width: '100%', padding: '12px', borderRadius: 8,
-                border: 'none', background: exporting ? '#444' : '#4CAF50',
-                color: '#fff', cursor: exporting ? 'default' : 'pointer',
-                fontSize: 13, fontWeight: 600,
-              }}>
-              {exporting ? 'Exporting...' : `Export as ${format.toUpperCase()}`}
-            </button>
-
-            {/* Quick actions */}
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={handleCopyToClipboard} style={quickBtn}>📋 Copy</button>
-              <button onClick={() => { setFormat('png'); handleExport(); }} style={quickBtn}>🖼 Quick PNG</button>
-              <button onClick={() => { setFormat('jpg'); handleExport(); }} style={quickBtn}>📸 Quick JPG</button>
+            <button onClick={handleExport} disabled={exporting} style={{
+              width: '100%', padding: '11px', borderRadius: 'var(--radius-sm)',
+              border: 'none', background: exporting ? 'var(--bg-overlay)' : 'var(--accent)',
+              color: '#fff', cursor: exporting ? 'default' : 'pointer',
+              fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
+            }}>{exporting ? 'EXPORTING...' : `EXPORT ${format.toUpperCase()}`}</button>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={handleCopyToClipboard} style={quickBtn}>COPY</button>
+              <button onClick={() => { setFormat('png'); handleExport(); }} style={quickBtn}>QUICK PNG</button>
+              <button onClick={() => { setFormat('jpg'); handleExport(); }} style={quickBtn}>QUICK JPG</button>
             </div>
           </>
         ) : (
-          /* Batch export mode */
           <>
-            <div style={{ fontSize: 11, color: '#aaa', marginBottom: 4 }}>
-              Select platform sizes to batch export:
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: 0.5 }}>
+              BATCH EXPORT — SELECT SIZES:
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
               {PLATFORM_PRESETS.filter(p => p.id !== 'custom').map(p => (
-                <button key={p.id} onClick={() => {
-                  setSelectedPlatforms(prev =>
-                    prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id]
-                  );
-                }} style={{
-                  padding: '5px 8px', borderRadius: 4, fontSize: 10,
-                  border: selectedPlatforms.includes(p.id) ? '1px solid #7C5CFC' : '1px solid #444',
-                  background: selectedPlatforms.includes(p.id) ? '#7C5CFC22' : 'transparent',
-                  color: selectedPlatforms.includes(p.id) ? '#7C5CFC' : '#888',
-                  cursor: 'pointer',
-                }}>
-                  {p.platform} {p.width}×{p.height}
-                </button>
+                <button key={p.id} onClick={() => setSelectedPlatforms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                  style={{
+                    padding: '5px 8px', borderRadius: 'var(--radius-sm)', fontSize: 8, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: 0.8,
+                    border: selectedPlatforms.includes(p.id) ? '1px solid rgba(124,92,252,0.3)' : '1px solid var(--border-default)',
+                    background: selectedPlatforms.includes(p.id) ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                    color: selectedPlatforms.includes(p.id) ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+                  }}>{p.platform} {p.width}×{p.height}</button>
               ))}
             </div>
-            <button onClick={handleBatchExport} disabled={selectedPlatforms.length === 0 || exporting}
-              style={{
-                marginTop: 8, width: '100%', padding: '12px', borderRadius: 8,
-                border: 'none', background: selectedPlatforms.length > 0 && !exporting ? '#7C5CFC' : '#333',
-                color: selectedPlatforms.length > 0 && !exporting ? '#fff' : '#666',
-                cursor: selectedPlatforms.length > 0 && !exporting ? 'pointer' : 'default',
-                fontSize: 13, fontWeight: 600,
-              }}>
-              {exporting ? 'Exporting...' : `Batch Export (${selectedPlatforms.length} sizes)`}
-            </button>
+            <button onClick={handleBatchExport} disabled={selectedPlatforms.length === 0 || exporting} style={{
+              width: '100%', padding: '11px', borderRadius: 'var(--radius-sm)',
+              border: 'none', background: selectedPlatforms.length > 0 && !exporting ? 'var(--accent)' : 'var(--bg-overlay)',
+              color: selectedPlatforms.length > 0 && !exporting ? '#fff' : 'var(--text-disabled)',
+              cursor: selectedPlatforms.length > 0 && !exporting ? 'pointer' : 'default',
+              fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
+            }}>{exporting ? 'EXPORTING...' : `EXPORT ${selectedPlatforms.length} SIZES`}</button>
           </>
         )}
       </div>
@@ -211,18 +139,13 @@ export default function ExportPanel() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</span>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: 8, fontWeight: 800, letterSpacing: 1.2, color: 'var(--text-disabled)' }}>{label}</span>
       {children}
     </div>
   );
 }
-
-const selectStyle: React.CSSProperties = {
-  padding: '6px 10px', borderRadius: 6, border: '1px solid #333',
-  background: '#1a1a1a', color: '#ccc', fontSize: 12, outline: 'none',
-  width: '100%', boxSizing: 'border-box', cursor: 'pointer',
-};
 const quickBtn: React.CSSProperties = {
-  flex: 1, padding: '6px', borderRadius: 4, border: '1px solid #333',
-  background: '#1a1a1a', color: '#aaa', cursor: 'pointer', fontSize: 10,
+  flex: 1, padding: '6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)',
+  background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer',
+  fontFamily: 'var(--font-display)', fontSize: 9, fontWeight: 700, letterSpacing: 1,
 };
